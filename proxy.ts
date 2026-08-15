@@ -11,6 +11,19 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  const pathname = req.nextUrl.pathname;
+
+  // Protect admin dashboard
+  if (pathname.startsWith("/dashboard/admin") && user.role !== "ADMIN") {
+    return NextResponse.redirect(new URL("/", req.nextUrl.origin));
+  }
+
+  // Protect professional dashboard
+  if (pathname.startsWith("/dashboard/professional") && user.role !== "PROFESSIONAL") {
+    const dest = user.role === "ADMIN" ? "/dashboard/admin" : "/dashboard/customer";
+    return NextResponse.redirect(new URL(dest, req.nextUrl.origin));
+  }
+
   return NextResponse.next();
 }
 

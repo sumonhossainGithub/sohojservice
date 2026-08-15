@@ -2,55 +2,158 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
+import BangladeshUpazilaInput from "@/components/BangladeshUpazilaInput";
 
 export default function HomeHero() {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const router = useRouter();
   const [q, setQ] = useState("");
+  const [area, setArea] = useState("");
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    router.push(q ? `/browse?q=${encodeURIComponent(q)}` : "/browse");
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (area) params.set("area", area);
+    router.push(params.size ? `/browse?${params}` : "/browse");
   }
 
-  return (
-    <section className="border-b-2 border-[var(--color-ink)] bg-[var(--color-teal)] text-white">
-      <div className="max-w-6xl mx-auto px-4 py-16 md:py-24 grid md:grid-cols-2 gap-10 items-center">
-        <div>
-          <span className="inline-block bg-[var(--color-marigold)] text-[var(--color-ink)] text-xs font-bold px-3 py-1 rounded-full mb-4">
-            100% Free · Sirajganj
-          </span>
-          <h1 className="font-display text-4xl md:text-5xl font-extrabold leading-tight mb-4">
-            {t("tagline")}
-          </h1>
-          <p className="text-white/85 text-lg mb-8">{t("subtitle")}</p>
+  const popularTags = [
+    { nameEn: "Electrician", nameBn: "ইলেকট্রিশিয়ান", slug: "electrician", icon: "⚡" },
+    { nameEn: "Plumber", nameBn: "প্লাম্বার", slug: "plumber", icon: "🚰" },
+    { nameEn: "AC Repair", nameBn: "এসি সার্ভিসিং", slug: "ac-repair", icon: "❄️" },
+    { nameEn: "Home Tutor", nameBn: "হোম টিউটর", slug: "tutor", icon: "📚" },
+    { nameEn: "Painter", nameBn: "রং মিস্ত্রি", slug: "painter", icon: "🎨" },
+  ];
 
-          <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={t("searchPlaceholder")}
-              className="flex-1 rounded-lg px-4 py-3 text-[var(--color-ink)] border-2 border-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-marigold)]"
-            />
-            <button
-              type="submit"
-              className="signplate bg-[var(--color-marigold)] text-[var(--color-ink)] px-5 font-semibold"
-            >
-              {t("browse")}
-            </button>
+  return (
+    <section className="relative overflow-hidden border-b border-slate-200/80 bg-[linear-gradient(135deg,#0b1938_0%,#133170_45%,#1d4ed8_100%)] text-white py-16 md:py-24">
+      {/* Background Animated Gradient Mesh / Glowing Blobs */}
+      <div className="pointer-events-none absolute -right-24 -top-32 h-96 w-96 rounded-full bg-amber-400/20 blur-3xl blob-animated" />
+      <div className="pointer-events-none absolute -left-20 bottom-0 h-80 w-80 rounded-full bg-blue-400/25 blur-3xl blob-animated" style={{ animationDelay: "-6s" }} />
+      <div className="pointer-events-none absolute left-1/3 top-1/4 h-64 w-64 rounded-full bg-emerald-400/15 blur-3xl blob-animated" style={{ animationDelay: "-12s" }} />
+
+      <div className="max-w-6xl mx-auto px-4 grid items-center gap-12 lg:grid-cols-12 relative z-10">
+        {/* Left Column: Search & Headlines */}
+        <div className="lg:col-span-7 motion-enter space-y-6">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-semibold backdrop-blur-md shadow-sm">
+            <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+            <span className="text-white/95">{t("heroBadge")}</span>
+          </div>
+
+          {/* Main Title & Subtitle */}
+          <div className="space-y-3">
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.12]">
+              {t("tagline")}
+            </h1>
+            <p className="text-base sm:text-lg text-blue-100/90 max-w-xl font-normal leading-relaxed">
+              {t("subtitle")}
+            </p>
+          </div>
+
+          {/* Unified Search & Location Form */}
+          <form
+            onSubmit={handleSearch}
+            className="p-2.5 rounded-2xl bg-white/95 backdrop-blur-xl shadow-2xl border border-white/40 grid gap-2.5 sm:grid-cols-12 max-w-2xl"
+          >
+            <div className="sm:col-span-6 relative flex items-center">
+              <span className="absolute left-3.5 text-slate-400 text-base">🔍</span>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={t("searchPlaceholder")}
+                className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 py-3 text-sm text-[var(--color-ink)] placeholder:text-slate-400 focus:border-[var(--color-teal)] focus:ring-2 focus:ring-blue-100 focus:outline-none"
+              />
+            </div>
+
+            <div className="sm:col-span-6 flex gap-2">
+              <div className="flex-1">
+                <BangladeshUpazilaInput
+                  value={area}
+                  onChange={setArea}
+                  placeholder={t("chooseUpazila")}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-[var(--color-ink)] placeholder:text-slate-400 focus:border-[var(--color-teal)] focus:ring-2 focus:ring-blue-100 focus:outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                className="shrink-0 bg-[var(--color-marigold)] hover:bg-[var(--color-marigold-light)] text-[var(--color-ink)] font-extrabold text-sm px-5 py-3 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
+              >
+                {t("search")}
+              </button>
+            </div>
           </form>
+
+          {/* Quick Category Chips */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-blue-100/80">
+            <span className="font-semibold">{lang === "bn" ? "জনপ্রিয়:" : "Popular:"}</span>
+            {popularTags.map((item) => (
+              <Link
+                key={item.slug}
+                href={`/browse?category=${item.slug}`}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-white hover:bg-white/20 hover:border-white/40 transition-all font-medium backdrop-blur-xs"
+              >
+                <span>{item.icon}</span>
+                <span>{lang === "bn" ? item.nameBn : item.nameEn}</span>
+              </Link>
+            ))}
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          {["⚡ Electrician", "🔧 Plumber", "🎨 Painter", "📚 Tutor"].map((item) => (
-            <div
-              key={item}
-              className="signplate bg-white text-[var(--color-ink)] px-4 py-6 text-center font-display font-bold"
-            >
-              {item}
+        {/* Right Column: Motion Graphics / Floating Live Cards */}
+        <div className="lg:col-span-5 relative motion-enter-delay-1 hidden md:block">
+          <div className="relative mx-auto max-w-sm h-96 flex items-center justify-center">
+            {/* Center Decorative Circle */}
+            <div className="absolute h-72 w-72 rounded-full border border-white/15 bg-white/5 backdrop-blur-2xl flex items-center justify-center p-6 text-center">
+              <div className="space-y-1">
+                <span className="text-4xl">🇧🇩</span>
+                <p className="font-display font-extrabold text-lg text-white">64 Districts</p>
+                <p className="text-xs text-blue-200">Covering All Bangladesh Upazilas</p>
+              </div>
             </div>
-          ))}
+
+            {/* Floating Card 1: Verified Professional */}
+            <div className="absolute -top-4 -left-4 signplate glass-panel p-3.5 shadow-2xl motion-float text-slate-800 flex items-center gap-3 border border-white/80">
+              <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl shadow-xs">
+                ⚡
+              </div>
+              <div>
+                <div className="flex items-center gap-1">
+                  <span className="font-display font-bold text-xs">Electrician Pro</span>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full">✓ Verified</span>
+                </div>
+                <p className="text-[11px] text-slate-500">Sirajganj Sadar · ★ 4.9</p>
+              </div>
+            </div>
+
+            {/* Floating Card 2: Free Instant Booking */}
+            <div className="absolute top-1/2 -right-6 signplate glass-panel p-3.5 shadow-2xl motion-float-reverse text-slate-800 flex items-center gap-3 border border-white/80">
+              <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center text-xl shadow-xs">
+                🤝
+              </div>
+              <div>
+                <p className="font-display font-bold text-xs">Direct Booking</p>
+                <p className="text-[11px] text-emerald-600 font-semibold">100% Free · No Middleman</p>
+              </div>
+            </div>
+
+            {/* Floating Card 3: Live Rating */}
+            <div className="absolute -bottom-4 left-6 signplate glass-panel p-3.5 shadow-2xl motion-float text-slate-800 flex items-center gap-3 border border-white/80" style={{ animationDelay: "-3s" }}>
+              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-xl shadow-xs">
+                ⭐
+              </div>
+              <div>
+                <div className="flex items-center gap-1 text-xs font-bold text-amber-500">
+                  <span>★★★★★</span>
+                  <span className="text-slate-700">5.0</span>
+                </div>
+                <p className="text-[11px] text-slate-500">Trusted Customer Ratings</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

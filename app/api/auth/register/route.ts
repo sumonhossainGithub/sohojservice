@@ -11,6 +11,7 @@ const schema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   phone: z.string().min(6).optional(),
+  photoUrl: z.string().url().or(z.literal("")).optional(),
   password: z.string().min(6),
   role: z.enum(["CUSTOMER", "PROFESSIONAL"]).default("CUSTOMER"),
 });
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const { name, email, phone, password, role } = parsed.data;
+  const { name, email, phone, password, role, photoUrl } = parsed.data;
 
   const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
   if (existing) {
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
 
   const [user] = await db
     .insert(users)
-    .values({ name, email, phone, passwordHash, role })
+    .values({ name, email, phone, photoUrl: photoUrl || null, passwordHash, role })
     .returning();
 
   const token = await createSessionToken({

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { bookings, professionalProfiles, users, categories } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
@@ -27,6 +27,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Please check your booking details." }, { status: 400 });
   }
 
+  const professional = await db.query.professionalProfiles.findFirst({
+    where: eq(professionalProfiles.id, parsed.data.professionalId),
+  });
+  if (!professional) {
+    return NextResponse.json({ error: "Selected professional was not found." }, { status: 404 });
+  }
+  if (!professional.isAvailable) {
+    return NextResponse.json({ error: "This professional is currently unavailable." }, { status: 400 });
+  }
+
+  const preferredDate = new Date(parsed.data.preferredDate);
+  if (Number.isNaN(preferredDate.getTime())) {
+    return NextResponse.json({ error: "Please provide a valid preferred date/time." }, { status: 400 });
+  }
+
   const [booking] = await db
     .insert(bookings)
     .values({
@@ -34,7 +49,7 @@ export async function POST(req: Request) {
       professionalId: parsed.data.professionalId,
       problemNote: parsed.data.problemNote,
       address: parsed.data.address,
-      preferredDate: new Date(parsed.data.preferredDate),
+      preferredDate,
     })
     .returning();
 
@@ -56,6 +71,7 @@ export async function GET() {
         address: bookings.address,
         preferredDate: bookings.preferredDate,
         proName: users.name,
+        proPhotoUrl: professionalProfiles.photoUrl,
         proCategoryEn: categories.nameEn,
       })
       .from(bookings)
@@ -63,7 +79,7 @@ export async function GET() {
       .innerJoin(users, eq(professionalProfiles.userId, users.id))
       .innerJoin(categories, eq(professionalProfiles.categoryId, categories.id))
       .where(eq(bookings.customerId, user.id))
-      .orderBy(bookings.createdAt);
+      .orderBy(desc(bookings.createdAt));
 
     return NextResponse.json(
       rows.map((b) => ({
@@ -72,7 +88,7 @@ export async function GET() {
         problemNote: b.problemNote,
         address: b.address,
         preferredDate: b.preferredDate,
-        professional: { user: { name: b.proName }, category: { nameEn: b.proCategoryEn } },
+        professional: { user: { name: b.proName, photoUrl: b.proPhotoUrl }, category: { nameEn: b.proCategoryEn } },
       }))
     );
   }
@@ -92,11 +108,12 @@ export async function GET() {
         preferredDate: bookings.preferredDate,
         customerName: users.name,
         customerPhone: users.phone,
+        customerPhotoUrl: users.photoUrl,
       })
       .from(bookings)
       .innerJoin(users, eq(bookings.customerId, users.id))
       .where(eq(bookings.professionalId, profile.id))
-      .orderBy(bookings.createdAt);
+      .orderBy(desc(bookings.createdAt));
 
     return NextResponse.json(
       rows.map((b) => ({
@@ -105,9 +122,28 @@ export async function GET() {
         problemNote: b.problemNote,
         address: b.address,
         preferredDate: b.preferredDate,
-        customer: { name: b.customerName, phone: b.customerPhone },
+        customer: { name: b.customerName, phone: b.customerPhone, photoUrl: b.customerPhotoUrl },
       }))
     );
+  }
+
+  if (user.role === "ADMIN") {
+    const rows = await db
+      .select({
+        id: bookings.id,
+        status: bookings.status,
+        problemNote: bookings.problemNote,
+        address: bookings.address,
+        preferredDate: bookings.preferredDate,
+        createdAt: bookings.createdAt,
+        updatedAt: bookings.updatedAt,
+        customerName: users.name,
+      })
+      .from(bookings)
+      .innerJoin(users, eq(bookings.customerId, users.id))
+      .orderBy(desc(bookings.createdAt));
+
+    return NextResponse.json(rows);
   }
 
   return NextResponse.json({ error: "Not authorized." }, { status: 401 });

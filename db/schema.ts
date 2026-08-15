@@ -3,6 +3,7 @@ import {
   text,
   timestamp,
   integer,
+  doublePrecision,
   boolean,
   pgEnum,
   uniqueIndex,
@@ -24,6 +25,10 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   phone: text("phone"),
+  photoUrl: text("photo_url"),
+  latitude: doublePrecision("latitude"),
+  longitude: doublePrecision("longitude"),
+  locationUpdatedAt: timestamp("location_updated_at"),
   passwordHash: text("password_hash").notNull(),
   role: roleEnum("role").notNull().default("CUSTOMER"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -55,6 +60,8 @@ export const professionalProfiles = pgTable(
     isVerified: boolean("is_verified").notNull().default(false),
     isAvailable: boolean("is_available").notNull().default(true),
     photoUrl: text("photo_url"),
+    latitude: doublePrecision("latitude"),
+    longitude: doublePrecision("longitude"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [uniqueIndex("professional_profiles_user_id_idx").on(table.userId)]
@@ -80,20 +87,21 @@ export const reviews = pgTable(
   "reviews",
   {
     id: text("id").primaryKey().$defaultFn(() => createId()),
-    bookingId: text("booking_id")
-      .notNull()
-      .references(() => bookings.id),
+    bookingId: text("booking_id").references(() => bookings.id),
     authorId: text("author_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     professionalId: text("professional_id")
       .notNull()
-      .references(() => professionalProfiles.id),
+      .references(() => professionalProfiles.id, { onDelete: "cascade" }),
     rating: integer("rating").notNull(),
     comment: text("comment").notNull().default(""),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("reviews_booking_id_idx").on(table.bookingId)]
+  (table) => [
+    uniqueIndex("reviews_booking_id_idx").on(table.bookingId),
+    uniqueIndex("reviews_author_professional_idx").on(table.authorId, table.professionalId),
+  ]
 );
 
 // Relations (so Drizzle's query API can do nested selects, e.g. booking.professional.user)

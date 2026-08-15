@@ -1,58 +1,226 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Bengali:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  --color-ink: #14262b;
-  --color-paper: #fbf8f2;
-  --color-teal: #0f5c56;
-  --color-teal-dark: #0a3f3b;
-  --color-marigold: #e8a33d;
-  --color-success: #2f8f5b;
-  --color-line: #d8cfc0;
+  --color-ink: #0f172a;
+  --color-ink-muted: #475569;
+  --color-paper: #f8fafc;
+  --color-surface: #ffffff;
+  --color-teal: #1d4ed8;
+  --color-teal-dark: #1e3a8a;
+  --color-teal-light: #3b82f6;
+  --color-marigold: #f59e0b;
+  --color-marigold-light: #fbbf24;
+  --color-success: #10b981;
+  --color-line: #e2e8f0;
+  --color-line-subtle: #f1f5f9;
+}
+
+@theme inline {
+  --color-background: var(--color-paper);
+  --color-foreground: var(--color-ink);
+  --font-sans: 'Plus Jakarta Sans', 'Inter', 'Noto Sans Bengali', sans-serif;
+}
+
+* {
+  border-color: var(--color-line);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--color-paper);
   color: var(--color-ink);
-  font-family: 'Inter', 'Noto Sans Bengali', sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', 'Noto Sans Bengali', sans-serif;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(29, 78, 216, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.04) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.03) 0px, transparent 50%);
+  min-height: 100vh;
 }
 
 .font-display {
-  font-family: 'Manrope', 'Noto Sans Bengali', sans-serif;
+  font-family: 'Manrope', 'Plus Jakarta Sans', 'Noto Sans Bengali', sans-serif;
+  letter-spacing: -0.02em;
 }
 
+/* Premium Card Styles */
 .signplate {
-  border: 2px solid var(--color-ink);
-  border-radius: 0.9rem;
-  box-shadow: 3px 3px 0 var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: 1.25rem;
+  background: var(--color-surface);
+  box-shadow: 
+    0 1px 3px 0 rgba(15, 23, 42, 0.03),
+    0 4px 16px -2px rgba(15, 23, 42, 0.04);
+  transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
 
 .signplate:hover {
-  box-shadow: 1px 1px 0 var(--color-ink);
-  transform: translate(2px, 2px);
+  border-color: rgba(29, 78, 216, 0.28);
+  box-shadow: 
+    0 12px 32px -4px rgba(29, 78, 216, 0.08),
+    0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  transform: translateY(-3px);
 }
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+.signplate-interactive {
+  cursor: pointer;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.signplate-interactive:active {
+  transform: translateY(-1px) scale(0.995);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Glassmorphism Accents */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.glass-panel-dark {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Motion Graphics & Keyframe Animations */
+.motion-enter {
+  animation: rise-in 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.motion-enter-delay-1 {
+  animation: rise-in 650ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.motion-enter-delay-2 {
+  animation: rise-in 650ms 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.motion-float {
+  animation: gentle-float 6s ease-in-out infinite;
+}
+
+.motion-float-reverse {
+  animation: gentle-float-reverse 7s ease-in-out infinite;
+}
+
+.motion-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.motion-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.motion-shimmer::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 80%
+  );
+  transform: rotate(30deg);
+  animation: shimmer 6s infinite;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes gentle-float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(0.8deg);
+  }
+}
+
+@keyframes gentle-float-reverse {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(8px) rotate(-0.8deg);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.9;
+    box-shadow: 0 0 15px rgba(29, 78, 216, 0.25);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 28px rgba(29, 78, 216, 0.5);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) rotate(30deg);
+  }
+  20%, 100% {
+    transform: translateX(100%) rotate(30deg);
+  }
+}
+
+@keyframes morph-blob {
+  0%, 100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    transform: rotate(0deg);
+  }
+  50% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+    transform: rotate(180deg);
+  }
+}
+
+.blob-animated {
+  animation: morph-blob 18s ease-in-out infinite;
+}
+
+/* Sleek custom scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-paper);
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -12,6 +12,7 @@ export async function GET(
   const rows = await db
     .select({
       id: professionalProfiles.id,
+      userId: professionalProfiles.userId,
       name: users.name,
       categorySlug: categories.slug,
       categoryNameEn: categories.nameEn,
@@ -23,7 +24,10 @@ export async function GET(
       ratePerVisit: professionalProfiles.ratePerVisit,
       isVerified: professionalProfiles.isVerified,
       isAvailable: professionalProfiles.isAvailable,
-      photoUrl: professionalProfiles.photoUrl,
+      listingPhotoUrl: professionalProfiles.photoUrl,
+      accountPhotoUrl: users.photoUrl,
+      latitude: professionalProfiles.latitude,
+      longitude: professionalProfiles.longitude,
     })
     .from(professionalProfiles)
     .innerJoin(users, eq(professionalProfiles.userId, users.id))
@@ -39,10 +43,12 @@ export async function GET(
   const profReviews = await db
     .select({
       id: reviews.id,
+      authorId: reviews.authorId,
       rating: reviews.rating,
       comment: reviews.comment,
       createdAt: reviews.createdAt,
       authorName: users.name,
+      authorPhotoUrl: users.photoUrl,
     })
     .from(reviews)
     .innerJoin(users, eq(reviews.authorId, users.id))
@@ -55,6 +61,7 @@ export async function GET(
 
   return NextResponse.json({
     id: p.id,
+    userId: p.userId,
     name: p.name,
     category: { slug: p.categorySlug, nameEn: p.categoryNameEn, nameBn: p.categoryNameBn },
     area: p.area,
@@ -64,13 +71,18 @@ export async function GET(
     ratePerVisit: p.ratePerVisit,
     isVerified: p.isVerified,
     isAvailable: p.isAvailable,
-    photoUrl: p.photoUrl,
+    photoUrl: p.listingPhotoUrl ?? p.accountPhotoUrl,
+    latitude: p.latitude,
+    longitude: p.longitude,
     avgRating,
+    reviewCount: ratings.length,
     reviews: profReviews.map((r) => ({
       id: r.id,
+      authorId: r.authorId,
       rating: r.rating,
       comment: r.comment,
       author: r.authorName,
+      authorPhotoUrl: r.authorPhotoUrl,
       createdAt: r.createdAt,
     })),
   });

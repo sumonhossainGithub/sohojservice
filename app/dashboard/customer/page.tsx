@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import ProfilePhoto from "@/components/ProfilePhoto";
 
 type Booking = {
   id: string;
@@ -10,18 +12,18 @@ type Booking = {
   problemNote: string;
   address: string;
   preferredDate: string;
-  professional: {
-    user: { name: string };
-    category: { nameEn: string };
+  professional?: {
+    user?: { name: string; photoUrl: string | null };
+    category?: { nameEn: string };
   };
 };
 
-const statusColor: Record<string, string> = {
-  PENDING: "bg-yellow-200 text-yellow-900",
-  ACCEPTED: "bg-blue-200 text-blue-900",
-  DECLINED: "bg-red-200 text-red-900",
-  COMPLETED: "bg-green-200 text-green-900",
-  CANCELLED: "bg-gray-200 text-gray-700",
+const statusColor: Record<string, { bg: string; text: string; dot: string }> = {
+  PENDING: { bg: "bg-amber-50 border-amber-200", text: "text-amber-800", dot: "bg-amber-500" },
+  ACCEPTED: { bg: "bg-blue-50 border-blue-200", text: "text-blue-800", dot: "bg-blue-500" },
+  DECLINED: { bg: "bg-red-50 border-red-200", text: "text-red-800", dot: "bg-red-500" },
+  COMPLETED: { bg: "bg-emerald-50 border-emerald-200", text: "text-emerald-800", dot: "bg-emerald-500" },
+  CANCELLED: { bg: "bg-slate-100 border-slate-200", text: "text-slate-700", dot: "bg-slate-400" },
 };
 
 export default function CustomerDashboard() {
@@ -32,6 +34,8 @@ export default function CustomerDashboard() {
   const [reviewing, setReviewing] = useState<string | null>(null);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login?callbackUrl=/dashboard/customer");
@@ -41,7 +45,7 @@ export default function CustomerDashboard() {
     if (user) {
       fetch("/api/bookings")
         .then((r) => r.json())
-        .then(setBookings)
+        .then((data) => setBookings(Array.isArray(data) ? data : []))
         .finally(() => setLoading(false));
     }
   }, [user]);
@@ -56,97 +60,191 @@ export default function CustomerDashboard() {
   }
 
   async function submitReview(bookingId: string) {
-    await fetch("/api/reviews", {
+    setSubmittingReview(true);
+    setReviewMessage("");
+    const res = await fetch("/api/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ bookingId, rating, comment }),
     });
-    setReviewing(null);
-    setComment("");
-    setRating(5);
+    setSubmittingReview(false);
+
+    if (res.ok) {
+      setReviewing(null);
+      setComment("");
+      setRating(5);
+      setReviewMessage("Review submitted successfully!");
+    } else {
+      const d = await res.json();
+      setReviewMessage(d.error || "Could not submit review.");
+    }
   }
 
   if (status === "loading" || loading) {
-    return <div className="max-w-3xl mx-auto px-4 py-16">Loading…</div>;
+    return <div className="max-w-4xl mx-auto px-4 py-16 text-center text-sm">Loading your bookings...</div>;
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10">
-      <h1 className="font-display text-2xl font-extrabold mb-6">My bookings</h1>
+    <div className="max-w-4xl mx-auto px-4 py-10 motion-enter space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-extrabold text-[var(--color-ink)]">
+            My Bookings
+          </h1>
+          <p className="text-xs text-slate-500">
+            Track your service requests, booking statuses, and reviews
+          </p>
+        </div>
+        <Link
+          href="/browse"
+          className="bg-[var(--color-teal)] hover:bg-[var(--color-teal-dark)] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95 w-fit"
+        >
+          + Request New Service
+        </Link>
+      </div>
+
+      {reviewMessage && (
+        <p className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 p-3 rounded-xl font-medium">
+          {reviewMessage}
+        </p>
+      )}
 
       {bookings.length === 0 ? (
-        <p className="text-[var(--color-ink)]/70">
-          You haven&apos;t requested any bookings yet. Go{" "}
-          <a href="/browse" className="underline font-medium">
-            browse professionals
-          </a>{" "}
-          in your area.
-        </p>
+        <div className="signplate bg-white p-12 text-center space-y-4 shadow-sm border border-slate-200">
+          <span className="text-4xl block">📋</span>
+          <h2 className="font-display font-bold text-lg text-slate-800">No bookings yet</h2>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            You haven&apos;t requested any service bookings yet. Explore top-rated local professionals in your upazila.
+          </p>
+          <Link
+            href="/browse"
+            className="inline-block bg-[var(--color-marigold)] text-[var(--color-ink)] font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow-xs"
+          >
+            Browse Professionals
+          </Link>
+        </div>
       ) : (
         <div className="space-y-4">
-          {bookings.map((b) => (
-            <div key={b.id} className="signplate bg-white p-5">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-display font-bold">{b.professional.user.name}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor[b.status]}`}>
-                  {b.status}
-                </span>
-              </div>
-              <p className="text-sm text-[var(--color-teal)] font-semibold mb-1">
-                {b.professional.category.nameEn}
-              </p>
-              <p className="text-sm text-[var(--color-ink)]/75 mb-1">{b.problemNote}</p>
-              <p className="text-xs text-[var(--color-ink)]/60">
-                {b.address} · {new Date(b.preferredDate).toLocaleString()}
-              </p>
-
-              {b.status === "PENDING" && (
-                <button
-                  onClick={() => cancelBooking(b.id)}
-                  className="mt-3 text-sm underline text-red-700"
-                >
-                  Cancel request
-                </button>
-              )}
-
-              {b.status === "COMPLETED" && (
-                <div className="mt-3">
-                  {reviewing === b.id ? (
-                    <div className="space-y-2 border-t-2 border-[var(--color-line)] pt-3">
-                      <label className="block text-xs font-medium">Rating (1-5)</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={5}
-                        value={rating}
-                        onChange={(e) => setRating(Number(e.target.value))}
-                        className="border-2 border-[var(--color-ink)] rounded-lg px-2 py-1 w-20"
-                      />
-                      <textarea
-                        placeholder="How was the service?"
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        className="w-full border-2 border-[var(--color-ink)] rounded-lg px-2 py-1"
-                      />
-                      <button
-                        onClick={() => submitReview(b.id)}
-                        className="signplate bg-[var(--color-marigold)] px-4 py-1.5 text-sm font-semibold"
-                      >
-                        Submit review
-                      </button>
+          {bookings.map((b) => {
+            const sc = statusColor[b.status] ?? statusColor.PENDING;
+            return (
+              <div
+                key={b.id}
+                className="signplate bg-white p-6 shadow-sm border border-slate-200/90 transition-all hover:shadow-md"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <ProfilePhoto
+                      name={b.professional?.user?.name ?? "Professional"}
+                      photoUrl={b.professional?.user?.photoUrl}
+                      size="md"
+                    />
+                    <div>
+                      <span className="font-display font-bold text-base text-slate-900 block">
+                        {b.professional?.user?.name ?? "Professional unavailable"}
+                      </span>
+                      <span className="text-xs font-semibold text-[var(--color-teal)]">
+                        {b.professional?.category?.nameEn ?? "Service Professional"}
+                      </span>
                     </div>
-                  ) : (
+                  </div>
+
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${sc.bg} ${sc.text} w-fit`}
+                  >
+                    <span className={`h-2 w-2 rounded-full ${sc.dot}`} />
+                    {b.status}
+                  </span>
+                </div>
+
+                <div className="py-3 space-y-2 text-sm">
+                  <div>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                      Problem / Service Note:
+                    </span>
+                    <p className="text-sm text-slate-700 mt-0.5">{b.problemNote}</p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-1">
+                    <span>📍 {b.address}</span>
+                    <span>🗓️ {new Date(b.preferredDate).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  {b.status === "PENDING" && (
                     <button
-                      onClick={() => setReviewing(b.id)}
-                      className="text-sm underline font-medium"
+                      type="button"
+                      onClick={() => cancelBooking(b.id)}
+                      className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg transition-colors"
                     >
-                      Leave a review
+                      Cancel Request
                     </button>
                   )}
+
+                  {b.status === "COMPLETED" && (
+                    <div className="w-full">
+                      {reviewing === b.id ? (
+                        <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200 motion-enter">
+                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                            Rate your experience (1 - 5 ★)
+                          </label>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                type="button"
+                                onClick={() => setRating(star)}
+                                className="text-2xl text-amber-400 hover:scale-125 transition-transform"
+                              >
+                                {rating >= star ? "★" : "☆"}
+                              </button>
+                            ))}
+                            <span className="text-xs font-bold ml-2 text-slate-600">{rating} / 5</span>
+                          </div>
+
+                          <textarea
+                            placeholder="Share your feedback..."
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            rows={2}
+                            className="w-full bg-white rounded-lg border border-slate-300 p-2.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              disabled={submittingReview}
+                              onClick={() => submitReview(b.id)}
+                              className="bg-[var(--color-marigold)] text-[var(--color-ink)] font-extrabold text-xs px-4 py-2 rounded-lg shadow-xs active:scale-95 disabled:opacity-60"
+                            >
+                              {submittingReview ? "Submitting..." : "Submit Review"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setReviewing(null)}
+                              className="text-xs text-slate-500 hover:text-slate-700 px-3 py-2"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setReviewing(b.id)}
+                          className="text-xs font-bold text-[var(--color-teal)] bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3.5 py-1.5 rounded-lg transition-colors"
+                        >
+                          ⭐ Rate & Review Service
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

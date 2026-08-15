@@ -37,12 +37,13 @@ export async function PATCH(
   const isOwningProfessional =
     user.role === "PROFESSIONAL" && professional?.userId === user.id;
   const isOwningCustomer = user.role === "CUSTOMER" && booking.customerId === user.id;
+  const isAdmin = user.role === "ADMIN";
 
-  if (
+  if (!isAdmin && (
     (["ACCEPTED", "DECLINED", "COMPLETED"].includes(parsed.data.status) &&
       !isOwningProfessional) ||
     (parsed.data.status === "CANCELLED" && !isOwningCustomer && !isOwningProfessional)
-  ) {
+  )) {
     return NextResponse.json({ error: "Not authorized for this action." }, { status: 403 });
   }
 
@@ -53,4 +54,23 @@ export async function PATCH(
     .returning();
 
   return NextResponse.json(updated);
+}
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Admins only." }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const booking = await db.query.bookings.findFirst({ where: eq(bookings.id, id) });
+  if (!booking) {
+    return NextResponse.json({ error: "Booking not found." }, { status: 404 });
+  }
+
+  await db.delete(bookings).where(eq(bookings.id, id));
+  return NextResponse.json({ ok: true });
 }

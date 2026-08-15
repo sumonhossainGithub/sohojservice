@@ -8,6 +8,7 @@ export async function GET(req: Request) {
   const categorySlug = searchParams.get("category") ?? undefined;
   const area = searchParams.get("area") ?? undefined;
   const q = searchParams.get("q") ?? undefined;
+  const available = searchParams.get("available") === "true";
 
   const conditions = [];
   if (area) conditions.push(ilike(professionalProfiles.area, `%${area}%`));
@@ -21,6 +22,7 @@ export async function GET(req: Request) {
       )
     );
   }
+  if (available) conditions.push(eq(professionalProfiles.isAvailable, true));
 
   const rows = await db
     .select({
@@ -36,7 +38,10 @@ export async function GET(req: Request) {
       ratePerVisit: professionalProfiles.ratePerVisit,
       isVerified: professionalProfiles.isVerified,
       isAvailable: professionalProfiles.isAvailable,
-      photoUrl: professionalProfiles.photoUrl,
+      listingPhotoUrl: professionalProfiles.photoUrl,
+      accountPhotoUrl: users.photoUrl,
+      latitude: professionalProfiles.latitude,
+      longitude: professionalProfiles.longitude,
     })
     .from(professionalProfiles)
     .innerJoin(users, eq(professionalProfiles.userId, users.id))
@@ -70,7 +75,9 @@ export async function GET(req: Request) {
       ratePerVisit: p.ratePerVisit,
       isVerified: p.isVerified,
       isAvailable: p.isAvailable,
-      photoUrl: p.photoUrl,
+      photoUrl: p.listingPhotoUrl ?? p.accountPhotoUrl,
+      latitude: p.latitude,
+      longitude: p.longitude,
       avgRating,
       reviewCount: ratings.length,
     };

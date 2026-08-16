@@ -80,21 +80,36 @@ export default function HomeHero() {
               </div>
               <button
                 type="submit"
-                className="shrink-0 bg-[var(--color-marigold)] hover:bg-[var(--color-marigold-light)] text-[var(--color-ink)] font-extrabold text-sm px-5 py-3 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
+                className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
               >
                 {t("search")}
               </button>
             </div>
           </form>
 
+          {/* Instant Book Quick Action Callout */}
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Link
+              href="/instant-book"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:opacity-95 text-slate-950 font-black text-xs px-4.5 py-2.5 rounded-xl shadow-lg hover:shadow-xl active:scale-95 transition-all animate-emergency border border-amber-300/60"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-60"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-950"></span>
+              </span>
+              <span>{lang === "bn" ? "জরুরি সার্ভিস দরকার? ইনস্ট্যান্ট বুকিং (রেজিস্ট্রেশন ছাড়া)" : "Need Urgent Help? Instant Book (No Sign Up)"}</span>
+              <span>→</span>
+            </Link>
+          </div>
+
           {/* Quick Category Chips */}
-          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-blue-100/80">
-            <span className="font-semibold">{lang === "bn" ? "জনপ্রিয়:" : "Popular:"}</span>
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-white">
+            <span className="font-bold">{lang === "bn" ? "জনপ্রিয়:" : "Popular:"}</span>
             {popularTags.map((item) => (
               <Link
                 key={item.slug}
                 href={`/browse?category=${item.slug}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-white hover:bg-white/20 hover:border-white/40 transition-all font-medium backdrop-blur-xs"
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/20 px-3.5 py-1 text-white hover:bg-white/30 hover:border-white/50 transition-all font-bold backdrop-blur-sm"
               >
                 <span>{item.icon}</span>
                 <span>{lang === "bn" ? item.nameBn : item.nameEn}</span>
@@ -107,50 +122,50 @@ export default function HomeHero() {
         <div className="lg:col-span-5 relative motion-enter-delay-1 hidden md:block">
           <div className="relative mx-auto max-w-sm h-96 flex items-center justify-center">
             {/* Center Decorative Circle */}
-            <div className="absolute h-72 w-72 rounded-full border border-white/15 bg-white/5 backdrop-blur-2xl flex items-center justify-center p-6 text-center">
+            <div className="absolute h-72 w-72 rounded-full border border-white/20 bg-white/10 backdrop-blur-2xl flex items-center justify-center p-6 text-center">
               <div className="space-y-1">
                 <span className="text-4xl">🇧🇩</span>
                 <p className="font-display font-extrabold text-lg text-white">64 Districts</p>
-                <p className="text-xs text-blue-200">Covering All Bangladesh Upazilas</p>
+                <p className="text-xs text-blue-100 font-semibold">Covering All Bangladesh Upazilas</p>
               </div>
             </div>
 
             {/* Floating Card 1: Verified Professional */}
-            <div className="absolute -top-4 -left-4 signplate glass-panel p-3.5 shadow-2xl motion-float text-slate-800 flex items-center gap-3 border border-white/80">
+            <div className="absolute -top-4 -left-4 signplate bg-white p-3.5 shadow-2xl motion-float text-slate-900 flex items-center gap-3 border border-slate-200">
               <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl shadow-xs">
                 ⚡
               </div>
               <div>
                 <div className="flex items-center gap-1">
-                  <span className="font-display font-bold text-xs">Electrician Pro</span>
-                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full">✓ Verified</span>
+                  <span className="font-display font-extrabold text-xs text-slate-900">Electrician Pro</span>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-900 font-bold px-1.5 py-0.2 rounded-full">✓ Verified</span>
                 </div>
-                <p className="text-[11px] text-slate-500">Sirajganj Sadar · ★ 4.9</p>
+                <p className="text-[11px] text-slate-600 font-medium">Sirajganj Sadar · ★ 4.9</p>
               </div>
             </div>
 
             {/* Floating Card 2: Free Instant Booking */}
-            <div className="absolute top-1/2 -right-6 signplate glass-panel p-3.5 shadow-2xl motion-float-reverse text-slate-800 flex items-center gap-3 border border-white/80">
+            <div className="absolute top-1/2 -right-6 signplate bg-white p-3.5 shadow-2xl motion-float-reverse text-slate-900 flex items-center gap-3 border border-slate-200">
               <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center text-xl shadow-xs">
                 🤝
               </div>
               <div>
-                <p className="font-display font-bold text-xs">Direct Booking</p>
-                <p className="text-[11px] text-emerald-600 font-semibold">100% Free · No Middleman</p>
+                <p className="font-display font-extrabold text-xs text-slate-900">Direct Booking</p>
+                <p className="text-[11px] text-emerald-800 font-bold">100% Free · No Middleman</p>
               </div>
             </div>
 
             {/* Floating Card 3: Live Rating */}
-            <div className="absolute -bottom-4 left-6 signplate glass-panel p-3.5 shadow-2xl motion-float text-slate-800 flex items-center gap-3 border border-white/80" style={{ animationDelay: "-3s" }}>
+            <div className="absolute -bottom-4 left-6 signplate bg-white p-3.5 shadow-2xl motion-float text-slate-900 flex items-center gap-3 border border-slate-200" style={{ animationDelay: "-3s" }}>
               <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-xl shadow-xs">
                 ⭐
               </div>
               <div>
                 <div className="flex items-center gap-1 text-xs font-bold text-amber-500">
                   <span>★★★★★</span>
-                  <span className="text-slate-700">5.0</span>
+                  <span className="text-slate-900 font-extrabold">5.0</span>
                 </div>
-                <p className="text-[11px] text-slate-500">Trusted Customer Ratings</p>
+                <p className="text-[11px] text-slate-600 font-medium">Trusted Customer Ratings</p>
               </div>
             </div>
           </div>

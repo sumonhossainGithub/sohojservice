@@ -9,7 +9,7 @@ const photoSchema = z.object({
   photoUrl: z
     .string()
     .regex(/^data:image\/(jpeg|png|webp);base64,/, "Please upload a JPG, PNG, or WebP image.")
-    .max(2_800_000, "Please choose an image smaller than 2 MB."),
+    .max(750_000, "Please choose an image smaller than 500 KB."),
 });
 
 export async function GET() {

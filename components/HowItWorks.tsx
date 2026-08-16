@@ -42,7 +42,7 @@ export default function HowItWorks() {
           <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[var(--color-ink)]">
             {t("howItWorks")}
           </h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-700 font-medium">
             {lang === "bn"
               ? "কোনো রেজিস্ট্রেশন ফি বা মধ্যস্বত্বভোগী ছাড়া সরাসরি সেবা গ্রহণ করুন।"
               : "Direct connection with verified professionals in your local area with zero middleman fees."}
@@ -53,22 +53,22 @@ export default function HowItWorks() {
           {steps.map((s, idx) => (
             <div
               key={s.n}
-              className="signplate p-8 bg-slate-50/60 hover:bg-white border border-slate-200 transition-all hover:shadow-xl group"
+              className="signplate p-8 bg-slate-50/80 hover:bg-white border border-slate-200 transition-all hover:shadow-xl group"
               style={{ animationDelay: `${idx * 120}ms` }}
             >
               <div className="flex items-center justify-between mb-6">
                 <span className="h-12 w-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-2xl shadow-xs group-hover:scale-110 transition-transform">
                   {s.icon}
                 </span>
-                <span className="font-display font-black text-2xl text-slate-300 group-hover:text-[var(--color-teal)] transition-colors">
+                <span className="font-display font-black text-2xl text-slate-400 group-hover:text-blue-700 transition-colors">
                   {s.n}
                 </span>
               </div>
 
-              <h3 className="font-display font-bold text-lg text-[var(--color-ink)] mb-2 group-hover:text-[var(--color-teal)] transition-colors">
+              <h3 className="font-display font-extrabold text-lg text-slate-900 mb-2 group-hover:text-blue-700 transition-colors">
                 {s.title}
               </h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
+              <p className="text-sm text-slate-700 leading-relaxed font-medium">
                 {s.body}
               </p>
             </div>

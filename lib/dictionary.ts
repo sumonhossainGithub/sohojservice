@@ -54,6 +54,10 @@ export const dictionary = {
     loginToRateLink: "Log in or Sign up to rate",
     cannotRateOwn: "You cannot rate your own professional profile.",
     ratingSuccess: "Thank you! Your rating has been recorded.",
+    instantBook: "⚡ Instant Book",
+    instantBookSubtitle: "Need urgent help? Submit your requirements in 30 seconds — our team will immediately find and dispatch the best verified professional in your area. No registration required!",
+    instantBookBadge: "⚡ Fast Dispatch & Free Concierge",
+    instantBookSuccess: "Request received! Our team is finding the best technician for you now.",
   },
   bn: {
     tagline: "বিশ্বস্ত স্থানীয় সেবা, আপনার দোরগোড়ায়",
@@ -108,6 +112,10 @@ export const dictionary = {
     loginToRateLink: "রেটিং দিতে লগ ইন বা সাইন আপ করুন",
     cannotRateOwn: "নিজের প্রোফাইলে রেটিং দেওয়া সম্ভব নয়।",
     ratingSuccess: "ধন্যবাদ! আপনার রেটিং সফলভাবে জমা হয়েছে।",
+    instantBook: "⚡ জরুরি বুকিং",
+    instantBookSubtitle: "জরুরি সেবা প্রয়োজন? ৩০ সেকেন্ডে আপনার সমস্যা জানান — কোনো রেজিস্ট্রেশন ছাড়াই আমাদের টিম আপনার জন্য সেরা যাচাইকৃত প্রফেশনাল খুঁজে দিয়ে দ্রুত যোগাযোগ করবে!",
+    instantBookBadge: "⚡ দ্রুত সেবা ও ফ্রি কনসিয়ার্জ",
+    instantBookSuccess: "অনুরোধ গৃহীত হয়েছে! আমাদের টিম এখনই আপনার জন্য সেরা টেকনিশিয়ান নির্ধারণ করছে।",
   },
 } as const;
 

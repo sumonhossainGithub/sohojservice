@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import ProfilePhoto from "@/components/ProfilePhoto";
+import BangladeshUpazilaInput from "@/components/BangladeshUpazilaInput";
 
 type Professional = {
   id: string;
@@ -39,7 +40,28 @@ type UserItem = {
   photoUrl: string | null;
 };
 
-type AdminTab = "professionals" | "bookings" | "users";
+type InstantBookingItem = {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  categoryName: string;
+  problemDescription: string;
+  area: string;
+  fullAddress: string;
+  urgency: string;
+  status: "NEW" | "CONTACTED" | "ASSIGNED" | "COMPLETED" | "CANCELLED";
+  assignedProfessionalId: string | null;
+  assignedProfessional?: {
+    user?: { name: string; phone: string | null };
+    category?: { nameEn: string };
+  } | null;
+  adminNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type AdminTab = "instantBookings" | "professionals" | "bookings" | "users" | "completedTasks";
+type TimeframeFilter = "ALL" | "TODAY" | "THIS_WEEK" | "THIS_MONTH" | "THIS_YEAR";
 
 type ProfessionalDetails = {
   id: string;
@@ -72,19 +94,71 @@ type ProfessionalDetails = {
   };
 };
 
+function isDateToday(dateStr: string) {
+  const d = new Date(dateStr);
+  const today = new Date();
+  return (
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
+  );
+}
+
+function isDateThisWeek(dateStr: string) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - d.getTime());
+  const diffDays = diffTime / (1000 * 60 * 60 * 24);
+  return diffDays <= 7;
+}
+
+function isDateThisMonth(dateStr: string) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}
+
+function isDateThisYear(dateStr: string) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear();
+}
+
 export default function AdminDashboard() {
   const { user, status } = useAuth();
   const router = useRouter();
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
+  const [instantBookingsList, setInstantBookingsList] = useState<InstantBookingItem[]>([]);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<AdminTab>("professionals");
+  const [tab, setTab] = useState<AdminTab>("instantBookings");
   const [search, setSearch] = useState("");
   const [showPendingOnly, setShowPendingOnly] = useState(false);
+  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  const [timeframe, setTimeframe] = useState<TimeframeFilter>("ALL");
   const [actionMessage, setActionMessage] = useState("");
   const [detailsLoading, setDetailsLoading] = useState(false);
+
+  // Selected Professional Detail Modal State
   const [selectedProfessional, setSelectedProfessional] = useState<ProfessionalDetails | null>(null);
+  const [editingProBio, setEditingProBio] = useState("");
+  const [editingProArea, setEditingProArea] = useState("");
+  const [editingProCity, setEditingProCity] = useState("");
+  const [editingProExp, setEditingProExp] = useState(0);
+  const [editingProRate, setEditingProRate] = useState<number | "">("");
+  const [savingPro, setSavingPro] = useState(false);
+
+  // Selected User Detail Modal State
+  const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
+  const [editingUserName, setEditingUserName] = useState("");
+  const [editingUserPhone, setEditingUserPhone] = useState("");
+  const [editingUserRole, setEditingUserRole] = useState<UserItem["role"]>("CUSTOMER");
+  const [savingUser, setSavingUser] = useState(false);
+
+  // Instant booking note editing state
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -99,11 +173,13 @@ export default function AdminDashboard() {
       fetch("/api/professionals").then((r) => (r.ok ? r.json() : [])),
       fetch("/api/bookings").then((r) => (r.ok ? r.json() : [])),
       fetch("/api/admin/users").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/instant-bookings").then((r) => (r.ok ? r.json() : { instantBookings: [] })),
     ])
-      .then(([proData, bookingData, userData]) => {
+      .then(([proData, bookingData, userData, instantData]) => {
         setProfessionals(Array.isArray(proData) ? proData : []);
         setBookings(Array.isArray(bookingData) ? bookingData : []);
         setUsers(Array.isArray(userData) ? userData : []);
+        setInstantBookingsList(Array.isArray(instantData?.instantBookings) ? instantData.instantBookings : []);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -118,10 +194,16 @@ export default function AdminDashboard() {
     setProfessionals((prev) =>
       prev.map((p) => (p.id === id ? { ...p, isVerified: !isVerified } : p))
     );
-    setSelectedProfessional((prev) =>
-      prev && prev.id === id ? { ...prev, isVerified: !isVerified } : prev
+    if (selectedProfessional?.id === id) {
+      setSelectedProfessional((current) =>
+        current ? { ...current, isVerified: !isVerified } : current
+      );
+    }
+    setActionMessage(
+      !isVerified
+        ? "Professional verified and published."
+        : "Professional verification removed."
     );
-    setActionMessage("Professional verification status updated.");
   }
 
   async function toggleAvailability(id: string, isAvailable: boolean) {
@@ -134,309 +216,1274 @@ export default function AdminDashboard() {
     setProfessionals((prev) =>
       prev.map((p) => (p.id === id ? { ...p, isAvailable: !isAvailable } : p))
     );
-    setSelectedProfessional((prev) =>
-      prev && prev.id === id ? { ...prev, isAvailable: !isAvailable } : prev
+    if (selectedProfessional?.id === id) {
+      setSelectedProfessional((current) =>
+        current ? { ...current, isAvailable: !isAvailable } : current
+      );
+    }
+    setActionMessage(
+      !isAvailable ? "Set to available for bookings." : "Set to unavailable."
     );
-    setActionMessage("Professional availability updated.");
-  }
-
-  async function removeProfessional(id: string) {
-    setActionMessage("");
-    await fetch(`/api/admin/professionals/${id}`, { method: "DELETE" });
-    setProfessionals((prev) => prev.filter((p) => p.id !== id));
-    setSelectedProfessional((prev) => (prev?.id === id ? null : prev));
-    setActionMessage("Professional listing removed.");
   }
 
   async function openProfessionalDetails(id: string) {
     setDetailsLoading(true);
     const res = await fetch(`/api/admin/professionals/${id}`);
     if (res.ok) {
-      const data = await res.json();
+      const data = (await res.json()) as ProfessionalDetails;
       setSelectedProfessional(data);
+      setEditingProBio(data.bio || "");
+      setEditingProArea(data.area || "");
+      setEditingProCity(data.city || "");
+      setEditingProExp(data.yearsExperience || 0);
+      setEditingProRate(data.ratePerVisit ?? "");
     }
     setDetailsLoading(false);
   }
 
-  async function updateBookingStatus(id: string, newStatus: AdminBooking["status"]) {
+  async function saveProfessionalEdits() {
+    if (!selectedProfessional) return;
+    setSavingPro(true);
+    const payload = {
+      bio: editingProBio,
+      area: editingProArea,
+      city: editingProCity,
+      yearsExperience: Number(editingProExp),
+      ratePerVisit: editingProRate === "" ? null : Number(editingProRate),
+    };
+
+    const res = await fetch(`/api/admin/professionals/${selectedProfessional.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    setSavingPro(false);
+    if (res.ok) {
+      setSelectedProfessional((prev) =>
+        prev
+          ? {
+              ...prev,
+              bio: editingProBio,
+              area: editingProArea,
+              city: editingProCity,
+              yearsExperience: Number(editingProExp),
+              ratePerVisit: editingProRate === "" ? null : Number(editingProRate),
+            }
+          : null
+      );
+      setProfessionals((prev) =>
+        prev.map((p) =>
+          p.id === selectedProfessional.id
+            ? { ...p, area: editingProArea, city: editingProCity }
+            : p
+        )
+      );
+      setActionMessage("Professional details saved successfully.");
+    }
+  }
+
+  async function deleteProfessionalListing(id: string) {
+    if (!confirm("Are you sure you want to delete this professional listing?")) return;
+    const res = await fetch(`/api/admin/professionals/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setProfessionals((prev) => prev.filter((p) => p.id !== id));
+      setSelectedProfessional(null);
+      setActionMessage("Professional listing removed.");
+    }
+  }
+
+  function openUserDetails(u: UserItem) {
+    setSelectedUser(u);
+    setEditingUserName(u.name);
+    setEditingUserPhone(u.phone || "");
+    setEditingUserRole(u.role);
+  }
+
+  async function saveUserEdits() {
+    if (!selectedUser) return;
+    setSavingUser(true);
+    const res = await fetch(`/api/admin/users/${selectedUser.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editingUserName,
+        phone: editingUserPhone || null,
+        role: editingUserRole,
+      }),
+    });
+    setSavingUser(false);
+    if (res.ok) {
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === selectedUser.id
+            ? { ...u, name: editingUserName, phone: editingUserPhone || null, role: editingUserRole }
+            : u
+        )
+      );
+      setSelectedUser((prev) =>
+        prev
+          ? { ...prev, name: editingUserName, phone: editingUserPhone || null, role: editingUserRole }
+          : null
+      );
+      setActionMessage("User profile updated successfully.");
+    }
+  }
+
+  async function deleteUser(id: string) {
+    if (!confirm("Are you sure you want to delete this user? This cannot be undone.")) return;
+    setActionMessage("");
+    const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+      if (selectedUser?.id === id) setSelectedUser(null);
+      setActionMessage("User deleted.");
+    }
+  }
+
+  async function updateBookingStatus(id: string, bookingStatus: AdminBooking["status"]) {
     setActionMessage("");
     await fetch(`/api/bookings/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus }),
+      body: JSON.stringify({ status: bookingStatus }),
     });
     setBookings((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, status: newStatus, updatedAt: new Date().toISOString() } : b))
+      prev.map((b) => (b.id === id ? { ...b, status: bookingStatus, updatedAt: new Date().toISOString() } : b))
     );
-    setActionMessage("Booking status updated.");
+    setActionMessage(bookingStatus === "COMPLETED" ? "🎉 Booking marked as DONE and archived!" : "Booking status updated.");
   }
 
   async function deleteBooking(id: string) {
+    if (!confirm("Are you sure you want to delete this booking?")) return;
     setActionMessage("");
     await fetch(`/api/bookings/${id}`, { method: "DELETE" });
     setBookings((prev) => prev.filter((b) => b.id !== id));
     setActionMessage("Booking deleted.");
   }
 
-  async function changeUserRole(id: string, role: UserItem["role"]) {
+  // Instant booking actions
+  async function updateInstantBookingStatus(id: string, newStatus: InstantBookingItem["status"]) {
     setActionMessage("");
-    const res = await fetch(`/api/admin/users/${id}`, {
+    const res = await fetch(`/api/instant-bookings/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role }),
+      body: JSON.stringify({ status: newStatus }),
     });
     if (res.ok) {
-      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
-      setActionMessage("User role updated.");
+      setInstantBookingsList((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, status: newStatus, updatedAt: new Date().toISOString() } : item))
+      );
+      setActionMessage(newStatus === "COMPLETED" ? "🎉 Instant booking marked as DONE & completed!" : `Instant booking status set to ${newStatus}.`);
     }
   }
 
-  async function deleteUser(id: string) {
+  async function assignInstantBookingPro(id: string, proId: string) {
     setActionMessage("");
-    const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/instant-bookings/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assignedProfessionalId: proId }),
+    });
     if (res.ok) {
-      setUsers((prev) => prev.filter((u) => u.id !== id));
-      setActionMessage("User deleted.");
+      const assignedPro = professionals.find((p) => p.id === proId);
+      setInstantBookingsList((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                assignedProfessionalId: proId,
+                assignedProfessional: assignedPro
+                  ? {
+                      user: { name: assignedPro.name, phone: null },
+                      category: { nameEn: assignedPro.category.nameEn },
+                    }
+                  : null,
+                status: item.status === "NEW" ? "ASSIGNED" : item.status,
+              }
+            : item
+        )
+      );
+      setActionMessage("Assigned professional to instant request.");
+    }
+  }
+
+  async function saveInstantBookingNote(id: string) {
+    const res = await fetch(`/api/instant-bookings/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminNotes: noteText }),
+    });
+    if (res.ok) {
+      setInstantBookingsList((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, adminNotes: noteText } : item))
+      );
+      setEditingNoteId(null);
+      setActionMessage("Note saved.");
     }
   }
 
   if (status !== "authenticated" || loading) {
-    return <div className="max-w-4xl mx-auto px-4 py-16">Loading…</div>;
+    return <div className="max-w-6xl mx-auto px-4 py-16 text-center text-sm font-semibold text-slate-700">Loading admin center...</div>;
   }
 
+  // Metric counts
+  const newInstantCount = instantBookingsList.filter((b) => b.status === "NEW").length;
   const pendingCount = professionals.filter((p) => !p.isVerified).length;
   const availableCount = professionals.filter((p) => p.isAvailable).length;
+
+  // Completed Tasks Aggregation
+  const doneInstantList = instantBookingsList.filter((b) => b.status === "COMPLETED");
+  const doneDirectList = bookings.filter((b) => b.status === "COMPLETED");
+  const totalDoneCount = doneInstantList.length + doneDirectList.length;
+
+  const doneTodayCount =
+    doneInstantList.filter((b) => isDateToday(b.updatedAt || b.createdAt)).length +
+    doneDirectList.filter((b) => isDateToday(b.updatedAt || b.createdAt)).length;
+
+  const doneWeekCount =
+    doneInstantList.filter((b) => isDateThisWeek(b.updatedAt || b.createdAt)).length +
+    doneDirectList.filter((b) => isDateThisWeek(b.updatedAt || b.createdAt)).length;
+
+  const doneMonthCount =
+    doneInstantList.filter((b) => isDateThisMonth(b.updatedAt || b.createdAt)).length +
+    doneDirectList.filter((b) => isDateThisMonth(b.updatedAt || b.createdAt)).length;
+
+  const doneYearCount =
+    doneInstantList.filter((b) => isDateThisYear(b.updatedAt || b.createdAt)).length +
+    doneDirectList.filter((b) => isDateThisYear(b.updatedAt || b.createdAt)).length;
+
+  // Filtered Lists
+  const displayedInstantBookings = instantBookingsList.filter((b) =>
+    `${b.customerName} ${b.customerPhone} ${b.categoryName} ${b.area} ${b.problemDescription} ${b.status}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
   const displayedProfessionals = professionals.filter((p) => {
-    const matchesSearch = `${p.name} ${p.category.nameEn} ${p.area}`.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch && (!showPendingOnly || !p.isVerified);
+    const matchesSearch = `${p.name} ${p.category.nameEn} ${p.area} ${p.city}`.toLowerCase().includes(search.toLowerCase());
+    const matchesPending = !showPendingOnly || !p.isVerified;
+    const matchesAvailable = !showAvailableOnly || p.isAvailable;
+    return matchesSearch && matchesPending && matchesAvailable;
   });
+
   const displayedBookings = bookings.filter((b) =>
     `${b.customerName} ${b.problemNote} ${b.address} ${b.status}`
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+
   const displayedUsers = users.filter((u) =>
-    `${u.name} ${u.email} ${u.role}`.toLowerCase().includes(search.toLowerCase())
+    `${u.name} ${u.email} ${u.phone || ""} ${u.role}`.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Unified Completed Tasks List with timeframe filtering
+  const allDoneTasks = [
+    ...doneInstantList.map((item) => ({
+      id: item.id,
+      kind: "⚡ Instant Booking",
+      customerName: item.customerName,
+      phone: item.customerPhone,
+      category: item.categoryName,
+      location: item.area,
+      address: item.fullAddress,
+      note: item.problemDescription,
+      date: item.updatedAt || item.createdAt,
+      adminNotes: item.adminNotes,
+      assignedName: item.assignedProfessional?.user?.name || null,
+      rawInstant: item,
+    })),
+    ...doneDirectList.map((item) => ({
+      id: item.id,
+      kind: "📅 Direct Request",
+      customerName: item.customerName,
+      phone: null,
+      category: "Direct Service",
+      location: item.address,
+      address: item.address,
+      note: item.problemNote,
+      date: item.updatedAt || item.createdAt,
+      adminNotes: null,
+      assignedName: null,
+      rawDirect: item,
+    })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const filteredDoneTasks = allDoneTasks.filter((task) => {
+    const matchesSearch = `${task.customerName} ${task.phone || ""} ${task.category} ${task.location} ${task.note}`
+      .toLowerCase()
+      .includes(search.toLowerCase());
+
+    let matchesTimeframe = true;
+    if (timeframe === "TODAY") matchesTimeframe = isDateToday(task.date);
+    else if (timeframe === "THIS_WEEK") matchesTimeframe = isDateThisWeek(task.date);
+    else if (timeframe === "THIS_MONTH") matchesTimeframe = isDateThisMonth(task.date);
+    else if (timeframe === "THIS_YEAR") matchesTimeframe = isDateThisYear(task.date);
+
+    return matchesSearch && matchesTimeframe;
+  });
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
-      <h1 className="font-display text-2xl font-extrabold mb-2">Admin control center</h1>
-      <p className="text-sm text-[var(--color-ink)]/70 mb-6">
-        Full access: manage professionals, bookings, and user roles.
-      </p>
-      {actionMessage && (
-        <p className="mb-4 rounded-lg border-2 border-[var(--color-line)] bg-white px-3 py-2 text-sm">
-          {actionMessage}
+    <div className="max-w-6xl mx-auto px-4 py-10 space-y-6 motion-enter">
+      <div>
+        <h1 className="font-display text-3xl font-extrabold text-slate-900 mb-1">
+          Admin Control Center
+        </h1>
+        <p className="text-xs text-slate-600 font-medium">
+          Full management: instant bookings, 1-click completion archives, verified technicians, and users.
         </p>
+      </div>
+
+      {actionMessage && (
+        <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs font-bold text-blue-950 flex items-center justify-between shadow-2xs">
+          <span>ℹ️ {actionMessage}</span>
+          <button onClick={() => setActionMessage("")} className="text-slate-400 hover:text-slate-700 cursor-pointer">✕</button>
+        </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="signplate bg-white p-3"><p className="text-xs text-[var(--color-ink)]/60">Professionals</p><p className="font-display text-xl font-bold">{professionals.length}</p></div>
-        <div className="signplate bg-white p-3"><p className="text-xs text-[var(--color-ink)]/60">Pending review</p><p className="font-display text-xl font-bold">{pendingCount}</p></div>
-        <div className="signplate bg-white p-3"><p className="text-xs text-[var(--color-ink)]/60">Available now</p><p className="font-display text-xl font-bold">{availableCount}</p></div>
+      {/* Interactive Metric Cards: Clickable to Filter/Switch */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            setTab("instantBookings");
+            setSearch("");
+            setShowPendingOnly(false);
+            setShowAvailableOnly(false);
+          }}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+            tab === "instantBookings"
+              ? "bg-amber-50/90 border-amber-300 ring-2 ring-amber-400"
+              : "bg-white border-slate-200 hover:border-amber-300"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">⚡ New Instant</p>
+            {newInstantCount > 0 && <span className="h-2 w-2 rounded-full bg-red-500 animate-ping" />}
+          </div>
+          <p className="font-display text-2xl font-black text-slate-900 mt-1">{newInstantCount}</p>
+          <span className="text-[10px] text-slate-500 font-semibold block mt-1">Dispatches →</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setTab("completedTasks");
+            setTimeframe("ALL");
+            setSearch("");
+          }}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+            tab === "completedTasks"
+              ? "bg-emerald-50/90 border-emerald-300 ring-2 ring-emerald-400"
+              : "bg-white border-slate-200 hover:border-emerald-300"
+          }`}
+        >
+          <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">✅ Done Tasks</p>
+          <p className="font-display text-2xl font-black text-slate-900 mt-1">{totalDoneCount}</p>
+          <span className="text-[10px] text-slate-500 font-semibold block mt-1">View Archive →</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setTab("professionals");
+            setShowPendingOnly(false);
+            setShowAvailableOnly(false);
+            setSearch("");
+          }}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+            tab === "professionals" && !showPendingOnly && !showAvailableOnly
+              ? "bg-blue-50/90 border-blue-300 ring-2 ring-blue-400"
+              : "bg-white border-slate-200 hover:border-blue-300"
+          }`}
+        >
+          <p className="text-xs font-bold text-blue-800 uppercase tracking-wide">All Pros</p>
+          <p className="font-display text-2xl font-black text-slate-900 mt-1">{professionals.length}</p>
+          <span className="text-[10px] text-slate-500 font-semibold block mt-1">Directory →</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setTab("professionals");
+            setShowPendingOnly(true);
+            setShowAvailableOnly(false);
+            setSearch("");
+          }}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+            tab === "professionals" && showPendingOnly
+              ? "bg-amber-50/90 border-amber-300 ring-2 ring-amber-400"
+              : "bg-white border-slate-200 hover:border-amber-300"
+          }`}
+        >
+          <p className="text-xs font-bold text-amber-900 uppercase tracking-wide">Pending</p>
+          <p className="font-display text-2xl font-black text-slate-900 mt-1">{pendingCount}</p>
+          <span className="text-[10px] text-slate-500 font-semibold block mt-1">Review pros →</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setTab("professionals");
+            setShowAvailableOnly(true);
+            setShowPendingOnly(false);
+            setSearch("");
+          }}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+            tab === "professionals" && showAvailableOnly
+              ? "bg-emerald-50/90 border-emerald-300 ring-2 ring-emerald-400"
+              : "bg-white border-slate-200 hover:border-emerald-300"
+          }`}
+        >
+          <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">Available</p>
+          <p className="font-display text-2xl font-black text-slate-900 mt-1">{availableCount}</p>
+          <span className="text-[10px] text-slate-500 font-semibold block mt-1">Active now →</span>
+        </button>
       </div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        <button onClick={() => setTab("professionals")} className={`rounded-lg border-2 border-[var(--color-ink)] px-3 py-1.5 text-sm font-semibold ${tab === "professionals" ? "bg-[var(--color-marigold)]" : "bg-white"}`}>Professionals</button>
-        <button onClick={() => setTab("bookings")} className={`rounded-lg border-2 border-[var(--color-ink)] px-3 py-1.5 text-sm font-semibold ${tab === "bookings" ? "bg-[var(--color-marigold)]" : "bg-white"}`}>Bookings</button>
-        <button onClick={() => setTab("users")} className={`rounded-lg border-2 border-[var(--color-ink)] px-3 py-1.5 text-sm font-semibold ${tab === "users" ? "bg-[var(--color-marigold)]" : "bg-white"}`}>Users</button>
+
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+        <button
+          onClick={() => {
+            setTab("instantBookings");
+            setShowPendingOnly(false);
+            setShowAvailableOnly(false);
+          }}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+            tab === "instantBookings"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          <span>⚡ Instant Bookings</span>
+          {newInstantCount > 0 && (
+            <span className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full animate-pulse">
+              {newInstantCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => {
+            setTab("completedTasks");
+            setShowPendingOnly(false);
+            setShowAvailableOnly(false);
+          }}
+          className={`flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+            tab === "completedTasks"
+              ? "bg-emerald-600 text-white shadow-xs"
+              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          <span>✅ Done Task List</span>
+          <span className="bg-emerald-100 text-emerald-900 text-[10px] font-black px-2 py-0.5 rounded-full">
+            {totalDoneCount}
+          </span>
+        </button>
+
+        <button
+          onClick={() => {
+            setTab("professionals");
+            setShowPendingOnly(false);
+            setShowAvailableOnly(false);
+          }}
+          className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+            tab === "professionals"
+              ? "bg-slate-900 text-white shadow-xs"
+              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          Professionals ({professionals.length})
+        </button>
+
+        <button
+          onClick={() => {
+            setTab("bookings");
+            setShowPendingOnly(false);
+            setShowAvailableOnly(false);
+          }}
+          className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+            tab === "bookings"
+              ? "bg-slate-900 text-white shadow-xs"
+              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          Direct Bookings ({bookings.length})
+        </button>
+
+        <button
+          onClick={() => {
+            setTab("users");
+            setShowPendingOnly(false);
+            setShowAvailableOnly(false);
+          }}
+          className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+            tab === "users"
+              ? "bg-slate-900 text-white shadow-xs"
+              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          Users ({users.length})
+        </button>
       </div>
-      <div className="mb-5 flex flex-wrap gap-3">
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search professional, service, or area" className="min-w-[220px] flex-1 rounded-lg border-2 border-[var(--color-ink)] bg-white px-3 py-2 text-sm" />
+
+      {/* Search & Filters */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={`Search in ${tab}...`}
+          className="min-w-[240px] flex-1 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+        />
+
         {tab === "professionals" && (
-          <button onClick={() => setShowPendingOnly((value) => !value)} className={`rounded-lg border-2 border-[var(--color-ink)] px-3 py-2 text-sm font-semibold ${showPendingOnly ? "bg-[var(--color-marigold)]" : "bg-white"}`}>{showPendingOnly ? "Showing pending" : "Show pending only"}</button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setShowPendingOnly((value) => !value);
+                setShowAvailableOnly(false);
+              }}
+              className={`rounded-xl border px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
+                showPendingOnly
+                  ? "bg-amber-400 text-slate-950 border-amber-500 shadow-2xs"
+                  : "bg-white text-slate-800 border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+              {showPendingOnly ? "✓ Showing Pending Only" : "Filter: Pending Review"}
+            </button>
+
+            <button
+              onClick={() => {
+                setShowAvailableOnly((value) => !value);
+                setShowPendingOnly(false);
+              }}
+              className={`rounded-xl border px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
+                showAvailableOnly
+                  ? "bg-emerald-600 text-white border-emerald-700 shadow-2xs"
+                  : "bg-white text-slate-800 border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+              {showAvailableOnly ? "✓ Showing Available Only" : "Filter: Available Now"}
+            </button>
+          </div>
         )}
       </div>
+
+      {/* TAB 1: INSTANT BOOKINGS */}
+      {tab === "instantBookings" && (
+        <div className="space-y-4">
+          {displayedInstantBookings.length === 0 ? (
+            <div className="p-8 text-center text-xs font-semibold text-slate-500 bg-white rounded-2xl border border-slate-200">
+              No instant booking requests found.
+            </div>
+          ) : (
+            displayedInstantBookings.map((item) => (
+              <div
+                key={item.id}
+                className="p-6 rounded-2xl bg-white shadow-sm border border-slate-200/90 space-y-4"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-display font-extrabold text-base text-slate-900">
+                        {item.customerName}
+                      </span>
+                      <span className="text-xs font-bold text-blue-800 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-lg">
+                        {item.categoryName}
+                      </span>
+                      {item.urgency === "ASAP" && (
+                        <span className="text-xs font-black bg-red-100 text-red-900 border border-red-200 px-2.5 py-0.5 rounded-lg animate-pulse">
+                          ⚡ EMERGENCY (ASAP)
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-600 font-medium mt-1">
+                      📍 {item.area} · {item.fullAddress} · {new Date(item.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      href={`tel:${item.customerPhone}`}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all shadow-2xs flex items-center gap-1"
+                    >
+                      <span>📞</span>
+                      <span>{item.customerPhone}</span>
+                    </a>
+
+                    {/* Quick Mark as Done Action Button */}
+                    {item.status !== "COMPLETED" ? (
+                      <button
+                        type="button"
+                        onClick={() => updateInstantBookingStatus(item.id, "COMPLETED")}
+                        className="bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border border-emerald-300 text-xs font-extrabold px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-2xs"
+                      >
+                        ✅ Mark as Done
+                      </button>
+                    ) : (
+                      <span className="text-xs font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-lg">
+                        ✓ Done
+                      </span>
+                    )}
+
+                    <select
+                      value={item.status}
+                      onChange={(e) => updateInstantBookingStatus(item.id, e.target.value as any)}
+                      className={`text-xs font-bold rounded-lg border px-2.5 py-1.5 cursor-pointer ${
+                        item.status === "NEW"
+                          ? "bg-red-50 text-red-900 border-red-300"
+                          : item.status === "CONTACTED"
+                          ? "bg-amber-50 text-amber-900 border-amber-300"
+                          : item.status === "ASSIGNED"
+                          ? "bg-blue-50 text-blue-900 border-blue-300"
+                          : item.status === "COMPLETED"
+                          ? "bg-emerald-50 text-emerald-900 border-emerald-300"
+                          : "bg-slate-100 text-slate-800 border-slate-300"
+                      }`}
+                    >
+                      <option value="NEW">🔴 NEW (Needs Callback)</option>
+                      <option value="CONTACTED">🟡 CONTACTED</option>
+                      <option value="ASSIGNED">🔵 ASSIGNED</option>
+                      <option value="COMPLETED">🟢 COMPLETED (DONE)</option>
+                      <option value="CANCELLED">⚪ CANCELLED</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Problem Description */}
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/70 text-xs">
+                  <span className="font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    Problem / Requirements:
+                  </span>
+                  <p className="text-slate-900 font-medium whitespace-pre-wrap leading-relaxed">{item.problemDescription}</p>
+                </div>
+
+                {/* Assignment & Notes Row */}
+                <div className="grid sm:grid-cols-2 gap-4 text-xs">
+                  {/* Assign to Pro */}
+                  <div className="space-y-1.5">
+                    <label className="font-bold text-slate-700 uppercase tracking-wide block">
+                      Assign to Verified Professional:
+                    </label>
+                    <select
+                      value={item.assignedProfessionalId || ""}
+                      onChange={(e) => assignInstantBookingPro(item.id, e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs text-slate-900 font-medium"
+                    >
+                      <option value="">-- Select a Professional to Assign --</option>
+                      {professionals.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.category.nameEn} · {p.area})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Admin Internal Notes */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-slate-700 uppercase tracking-wide">
+                        Internal Admin Notes:
+                      </label>
+                      {editingNoteId !== item.id && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingNoteId(item.id);
+                            setNoteText(item.adminNotes || "");
+                          }}
+                          className="text-[11px] font-bold text-blue-700 hover:underline cursor-pointer"
+                        >
+                          {item.adminNotes ? "Edit Note" : "+ Add Note"}
+                        </button>
+                      )}
+                    </div>
+
+                    {editingNoteId === item.id ? (
+                      <div className="flex gap-2">
+                        <input
+                          value={noteText}
+                          onChange={(e) => setNoteText(e.target.value)}
+                          placeholder="e.g. Called customer, assigned technician..."
+                          className="flex-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-900"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => saveInstantBookingNote(item.id)}
+                          className="bg-slate-900 text-white font-bold px-3 py-1 rounded-lg text-xs cursor-pointer"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingNoteId(null)}
+                          className="text-slate-400 hover:text-slate-700 text-xs px-1 cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-slate-600 font-medium italic p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                        {item.adminNotes || "No notes yet."}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: COMPLETED / DONE TASK LIST (WITH TIMEFRAME FILTERS) */}
+      {tab === "completedTasks" && (
+        <div className="space-y-4">
+          {/* Timeframe Filter Bar */}
+          <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1">Timeframe:</span>
+              <button
+                type="button"
+                onClick={() => setTimeframe("ALL")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  timeframe === "ALL"
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                All Time ({totalDoneCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimeframe("TODAY")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  timeframe === "TODAY"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                ⚡ Today ({doneTodayCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimeframe("THIS_WEEK")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  timeframe === "THIS_WEEK"
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                🗓️ This Week ({doneWeekCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimeframe("THIS_MONTH")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  timeframe === "THIS_MONTH"
+                    ? "bg-purple-600 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                📆 This Month ({doneMonthCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimeframe("THIS_YEAR")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  timeframe === "THIS_YEAR"
+                    ? "bg-amber-600 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                🏆 This Year ({doneYearCount})
+              </button>
+            </div>
+
+            <div className="text-xs font-bold text-slate-500">
+              Showing {filteredDoneTasks.length} completed tasks
+            </div>
+          </div>
+
+          {/* List of Done Tasks */}
+          {filteredDoneTasks.length === 0 ? (
+            <div className="p-12 text-center text-xs font-semibold text-slate-500 bg-white rounded-2xl border border-slate-200 space-y-2">
+              <span className="text-3xl block">📋</span>
+              <p className="text-sm font-bold text-slate-800">No completed tasks in this timeframe.</p>
+              <p className="text-slate-500">When requests are marked as Done, they will be organized here by date.</p>
+            </div>
+          ) : (
+            filteredDoneTasks.map((t) => (
+              <div
+                key={t.id}
+                className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3 hover:shadow-md transition-all"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm shrink-0">
+                      ✓
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-display font-extrabold text-sm text-slate-900">{t.customerName}</span>
+                        <span className="text-[11px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                          {t.kind}
+                        </span>
+                        <span className="text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded">
+                          {t.category}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        📍 {t.location} · Completed: {new Date(t.date).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {t.phone && (
+                      <a
+                        href={`tel:${t.phone}`}
+                        className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg flex items-center gap-1"
+                      >
+                        <span>📞</span>
+                        <span>{t.phone}</span>
+                      </a>
+                    )}
+                    <span className="text-xs font-extrabold text-emerald-950 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-lg">
+                      ✅ COMPLETED
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-xs text-slate-800 bg-slate-50 p-3 rounded-xl border border-slate-200/70">
+                  <span className="font-bold text-slate-500 uppercase tracking-wide block mb-1">Requirement:</span>
+                  <p className="font-medium whitespace-pre-wrap">{t.note}</p>
+                </div>
+
+                {(t.assignedName || t.adminNotes) && (
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 pt-1">
+                    {t.assignedName && (
+                      <span>🛠️ Assigned Technician: <strong className="text-slate-900">{t.assignedName}</strong></span>
+                    )}
+                    {t.adminNotes && (
+                      <span>📝 Notes: <em className="text-slate-800">{t.adminNotes}</em></span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: PROFESSIONALS */}
       {tab === "professionals" && (
         <div className="space-y-3">
-          {displayedProfessionals.map((p) => (
-            <div
-              key={p.id}
-              className="signplate bg-white p-4 flex items-center justify-between gap-4 cursor-pointer"
-              onClick={() => openProfessionalDetails(p.id)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") openProfessionalDetails(p.id);
-              }}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <ProfilePhoto name={p.name} photoUrl={p.photoUrl} size="md" />
-                <div>
-                  <p className="font-display font-bold">{p.name}</p>
-                  <p className="text-sm text-[var(--color-ink)]/70">
-                    {p.category.nameEn} · {p.area}, {p.city}
-                  </p>
-                  <p className="text-xs text-[var(--color-ink)]/55">Click to review full profile data</p>
+          {displayedProfessionals.length === 0 ? (
+            <div className="p-8 text-center text-xs font-semibold text-slate-500 bg-white rounded-2xl border border-slate-200">
+              No professionals matching current filter.
+            </div>
+          ) : (
+            displayedProfessionals.map((p) => (
+              <div
+                key={p.id}
+                className="p-4 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-4 cursor-pointer hover:shadow-md transition-all group"
+                onClick={() => openProfessionalDetails(p.id)}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <ProfilePhoto name={p.name} photoUrl={p.photoUrl} size="md" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-display font-extrabold text-sm text-slate-900 truncate block group-hover:text-blue-700 transition-colors">
+                        {p.name}
+                      </span>
+                      <span className="text-xs text-slate-400 font-semibold">🔍 Tap to Edit</span>
+                    </div>
+                    <span className="text-xs text-slate-600 font-medium">{p.category.nameEn} · 📍 {p.area}, {p.city}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => toggleAvailability(p.id, p.isAvailable)}
+                    className={`text-xs font-bold px-2.5 py-1 rounded-lg cursor-pointer ${
+                      p.isAvailable ? "bg-emerald-50 text-emerald-900 border border-emerald-200" : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {p.isAvailable ? "● Available" : "Unavailable"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleVerify(p.id, p.isVerified)}
+                    className={`text-xs font-bold px-3 py-1 rounded-lg cursor-pointer ${
+                      p.isVerified ? "bg-emerald-100 text-emerald-900 border border-emerald-300" : "bg-amber-100 text-amber-950 border border-amber-300"
+                    }`}
+                  >
+                    {p.isVerified ? "✓ Verified" : "Pending Review"}
+                  </button>
                 </div>
               </div>
-              <div className="flex flex-wrap justify-end gap-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleVerify(p.id, p.isVerified);
-                  }}
-                  className={`signplate px-4 py-1.5 text-sm font-semibold whitespace-nowrap ${
-                    p.isVerified ? "bg-white" : "bg-[var(--color-success)] text-white"
-                  }`}
-                >
-                  {p.isVerified ? "Unverify" : "Verify"}
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleAvailability(p.id, p.isAvailable);
-                  }}
-                  className="signplate bg-white px-4 py-1.5 text-sm font-semibold whitespace-nowrap"
-                >
-                  {p.isAvailable ? "Set unavailable" : "Set available"}
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeProfessional(p.id);
-                  }}
-                  className="signplate bg-red-600 px-4 py-1.5 text-sm font-semibold text-white whitespace-nowrap"
-                >
-                  Remove listing
-                </button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
 
+      {/* TAB 4: DIRECT BOOKINGS */}
       {tab === "bookings" && (
         <div className="space-y-3">
-          {displayedBookings.map((b) => (
-            <div key={b.id} className="signplate bg-white p-4">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="font-display font-bold">{b.customerName}</p>
-                <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold">{b.status}</span>
-              </div>
-              <p className="text-sm text-[var(--color-ink)]/80">{b.problemNote}</p>
-              <p className="mb-3 text-xs text-[var(--color-ink)]/60">{b.address} · {new Date(b.preferredDate).toLocaleString()}</p>
-              <div className="flex flex-wrap gap-2">
-                {(["PENDING", "ACCEPTED", "DECLINED", "COMPLETED", "CANCELLED"] as const).map((state) => (
-                  <button key={state} onClick={() => updateBookingStatus(b.id, state)} className="signplate bg-white px-3 py-1 text-xs font-semibold">
-                    {state}
-                  </button>
-                ))}
-                <button onClick={() => deleteBooking(b.id)} className="signplate bg-red-600 px-3 py-1 text-xs font-semibold text-white">
-                  Delete
-                </button>
-              </div>
+          {displayedBookings.length === 0 ? (
+            <div className="p-8 text-center text-xs font-semibold text-slate-500 bg-white rounded-2xl border border-slate-200">
+              No direct bookings found.
             </div>
-          ))}
+          ) : (
+            displayedBookings.map((b) => (
+              <div key={b.id} className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <span className="font-display font-extrabold text-sm text-slate-900 block">{b.customerName}</span>
+                  <p className="text-xs text-slate-800 font-medium">{b.problemNote}</p>
+                  <p className="text-[11px] text-slate-500 font-semibold mt-0.5">📍 {b.address} · 🗓️ {new Date(b.preferredDate).toLocaleString()}</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {b.status !== "COMPLETED" && (
+                    <button
+                      type="button"
+                      onClick={() => updateBookingStatus(b.id, "COMPLETED")}
+                      className="bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border border-emerald-300 text-xs font-extrabold px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-2xs"
+                    >
+                      ✅ Mark as Done
+                    </button>
+                  )}
+
+                  <select
+                    value={b.status}
+                    onChange={(e) => updateBookingStatus(b.id, e.target.value as any)}
+                    className="text-xs font-bold border border-slate-300 rounded-lg p-1.5 text-slate-900 cursor-pointer"
+                  >
+                    <option value="PENDING">PENDING</option>
+                    <option value="ACCEPTED">ACCEPTED</option>
+                    <option value="DECLINED">DECLINED</option>
+                    <option value="COMPLETED">COMPLETED (DONE)</option>
+                    <option value="CANCELLED">CANCELLED</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => deleteBooking(b.id)}
+                    className="text-red-600 hover:text-red-800 text-xs font-bold px-2 py-1 cursor-pointer"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
 
+      {/* TAB 5: USERS */}
       {tab === "users" && (
         <div className="space-y-3">
-          {displayedUsers.map((u) => (
-            <div key={u.id} className="signplate bg-white p-4 flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <ProfilePhoto name={u.name} photoUrl={u.photoUrl} size="sm" />
-                <div className="min-w-0">
-                  <p className="truncate font-display font-bold">{u.name}</p>
-                  <p className="truncate text-xs text-[var(--color-ink)]/65">{u.email}</p>
+          {displayedUsers.length === 0 ? (
+            <div className="p-8 text-center text-xs font-semibold text-slate-500 bg-white rounded-2xl border border-slate-200">
+              No users found.
+            </div>
+          ) : (
+            displayedUsers.map((u) => (
+              <div
+                key={u.id}
+                onClick={() => openUserDetails(u)}
+                className="p-4 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-4 cursor-pointer hover:shadow-md transition-all group"
+                role="button"
+                tabIndex={0}
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <ProfilePhoto name={u.name} photoUrl={u.photoUrl} size="md" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-display font-extrabold text-sm text-slate-900 block group-hover:text-blue-700 transition-colors">
+                        {u.name}
+                      </span>
+                      <span className="text-xs text-slate-400 font-semibold">🔍 Tap to Edit</span>
+                    </div>
+                    <span className="text-xs text-slate-600 font-medium">
+                      {u.email} {u.phone ? `· 📞 ${u.phone}` : ""}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <span
+                    className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
+                      u.role === "ADMIN"
+                        ? "bg-purple-100 text-purple-900 border border-purple-300"
+                        : u.role === "PROFESSIONAL"
+                        ? "bg-blue-100 text-blue-900 border border-blue-300"
+                        : "bg-slate-100 text-slate-800 border border-slate-200"
+                    }`}
+                  >
+                    {u.role}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => openUserDetails(u)}
+                    className="text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg cursor-pointer"
+                  >
+                    Edit Profile
+                  </button>
                 </div>
               </div>
-              <div className="flex flex-wrap justify-end gap-2">
-                <select
-                  value={u.role}
-                  onChange={(e) => changeUserRole(u.id, e.target.value as UserItem["role"])}
-                  className="rounded-lg border-2 border-[var(--color-ink)] bg-white px-2 py-1 text-xs font-semibold"
-                >
-                  <option value="CUSTOMER">CUSTOMER</option>
-                  <option value="PROFESSIONAL">PROFESSIONAL</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
-                <button onClick={() => deleteUser(u.id)} className="signplate bg-red-600 px-3 py-1 text-xs font-semibold text-white">
-                  Delete user
-                </button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
 
-      {(selectedProfessional || detailsLoading) && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={() => setSelectedProfessional(null)}>
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl border-2 border-[var(--color-ink)] bg-white p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <h2 className="font-display text-xl font-extrabold">Professional profile review</h2>
-              <button className="rounded-lg border-2 border-[var(--color-ink)] px-3 py-1 text-sm font-semibold" onClick={() => setSelectedProfessional(null)}>Close</button>
-            </div>
-            {detailsLoading || !selectedProfessional ? (
-              <p className="text-sm text-[var(--color-ink)]/70">Loading profile data...</p>
-            ) : (
-              <div className="space-y-5 text-sm">
-                <div className="flex items-center gap-4">
-                  <ProfilePhoto name={selectedProfessional.user.name} photoUrl={selectedProfessional.photoUrl} size="lg" />
-                  <div>
-                    <p className="font-display text-lg font-bold">{selectedProfessional.user.name}</p>
-                    <p className="text-[var(--color-ink)]/65">{selectedProfessional.user.email}</p>
-                    <p className="text-[var(--color-ink)]/65">{selectedProfessional.user.phone ?? "No phone"}</p>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="rounded-lg border-2 border-[var(--color-line)] p-3">
-                    <p className="text-xs text-[var(--color-ink)]/55">Category</p>
-                    <p className="font-semibold">{selectedProfessional.category.nameEn}</p>
-                    <p className="text-xs text-[var(--color-ink)]/65">{selectedProfessional.category.slug}</p>
-                  </div>
-                  <div className="rounded-lg border-2 border-[var(--color-line)] p-3">
-                    <p className="text-xs text-[var(--color-ink)]/55">Status</p>
-                    <p className="font-semibold">{selectedProfessional.isVerified ? "Verified" : "Not verified"}</p>
-                    <p className="text-xs text-[var(--color-ink)]/65">{selectedProfessional.isAvailable ? "Available" : "Unavailable"}</p>
-                  </div>
-                  <div className="rounded-lg border-2 border-[var(--color-line)] p-3">
-                    <p className="text-xs text-[var(--color-ink)]/55">Location</p>
-                    <p className="font-semibold">{selectedProfessional.area}, {selectedProfessional.city}</p>
-                    <p className="text-xs text-[var(--color-ink)]/65">Lat: {selectedProfessional.latitude ?? "-"} · Lng: {selectedProfessional.longitude ?? "-"}</p>
-                  </div>
-                  <div className="rounded-lg border-2 border-[var(--color-line)] p-3">
-                    <p className="text-xs text-[var(--color-ink)]/55">Experience and rate</p>
-                    <p className="font-semibold">{selectedProfessional.yearsExperience} years</p>
-                    <p className="text-xs text-[var(--color-ink)]/65">{selectedProfessional.ratePerVisit ? `BDT ${selectedProfessional.ratePerVisit} per visit` : "Rate not set"}</p>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border-2 border-[var(--color-line)] p-3">
-                  <p className="text-xs text-[var(--color-ink)]/55">Bio</p>
-                  <p>{selectedProfessional.bio || "No bio provided"}</p>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div className="rounded-lg border-2 border-[var(--color-line)] p-3"><p className="text-xs text-[var(--color-ink)]/55">Total bookings</p><p className="font-display text-lg font-bold">{selectedProfessional.stats.totalBookings}</p></div>
-                  <div className="rounded-lg border-2 border-[var(--color-line)] p-3"><p className="text-xs text-[var(--color-ink)]/55">Completed bookings</p><p className="font-display text-lg font-bold">{selectedProfessional.stats.completedBookings}</p></div>
-                  <div className="rounded-lg border-2 border-[var(--color-line)] p-3"><p className="text-xs text-[var(--color-ink)]/55">Reviews</p><p className="font-display text-lg font-bold">{selectedProfessional.stats.reviewCount}{selectedProfessional.stats.avgRating ? ` · ${selectedProfessional.stats.avgRating.toFixed(1)}★` : ""}</p></div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <button
-                    onClick={() => toggleVerify(selectedProfessional.id, selectedProfessional.isVerified)}
-                    className={`signplate px-4 py-1.5 text-sm font-semibold ${selectedProfessional.isVerified ? "bg-white" : "bg-[var(--color-success)] text-white"}`}
-                  >
-                    {selectedProfessional.isVerified ? "Unverify" : "Verify"}
-                  </button>
-                  <button
-                    onClick={() => toggleAvailability(selectedProfessional.id, selectedProfessional.isAvailable)}
-                    className="signplate bg-white px-4 py-1.5 text-sm font-semibold"
-                  >
-                    {selectedProfessional.isAvailable ? "Set unavailable" : "Set available"}
-                  </button>
-                  <button
-                    onClick={() => removeProfessional(selectedProfessional.id)}
-                    className="signplate bg-red-600 px-4 py-1.5 text-sm font-semibold text-white"
-                  >
-                    Remove listing
-                  </button>
+      {/* MODAL 1: EDIT PROFESSIONAL PROFILE */}
+      {selectedProfessional && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
+          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto p-6 md:p-8 space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <ProfilePhoto name={selectedProfessional.user.name} photoUrl={selectedProfessional.photoUrl} size="lg" />
+                <div>
+                  <h2 className="font-display font-extrabold text-xl text-slate-900">{selectedProfessional.user.name}</h2>
+                  <p className="text-xs text-blue-700 font-bold">{selectedProfessional.category.nameEn} · ID: #{selectedProfessional.id.slice(-6)}</p>
                 </div>
               </div>
-            )}
+              <button
+                onClick={() => setSelectedProfessional(null)}
+                className="text-slate-400 hover:text-slate-700 text-lg font-bold p-1 rounded-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-4 gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+              <div>
+                <p className="text-[10px] uppercase font-bold text-slate-500">Total Jobs</p>
+                <p className="font-bold text-base text-slate-900">{selectedProfessional.stats.totalBookings}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase font-bold text-slate-500">Completed</p>
+                <p className="font-bold text-base text-emerald-700">{selectedProfessional.stats.completedBookings}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase font-bold text-slate-500">Reviews</p>
+                <p className="font-bold text-base text-slate-900">{selectedProfessional.stats.reviewCount}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase font-bold text-slate-500">Avg Rating</p>
+                <p className="font-bold text-base text-amber-700">★ {selectedProfessional.stats.avgRating?.toFixed(1) || "N/A"}</p>
+              </div>
+            </div>
+
+            {/* Editable Form */}
+            <div className="space-y-4 text-xs">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleVerify(selectedProfessional.id, selectedProfessional.isVerified)}
+                  className={`px-4 py-2 rounded-xl font-bold cursor-pointer transition-all ${
+                    selectedProfessional.isVerified
+                      ? "bg-emerald-600 text-white"
+                      : "bg-amber-100 text-amber-950 border border-amber-300"
+                  }`}
+                >
+                  {selectedProfessional.isVerified ? "✓ Verified & Active on Website" : "⚠️ Pending Review (Click to Verify)"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => toggleAvailability(selectedProfessional.id, selectedProfessional.isAvailable)}
+                  className={`px-4 py-2 rounded-xl font-bold cursor-pointer transition-all ${
+                    selectedProfessional.isAvailable
+                      ? "bg-emerald-50 text-emerald-900 border border-emerald-300"
+                      : "bg-slate-200 text-slate-700"
+                  }`}
+                >
+                  {selectedProfessional.isAvailable ? "● Available for Direct Jobs" : "Unavailable"}
+                </button>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">Upazila / Area</label>
+                  <BangladeshUpazilaInput
+                    value={editingProArea}
+                    onChange={setEditingProArea}
+                    placeholder="Search upazila"
+                    className="w-full border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">District / City</label>
+                  <input
+                    value={editingProCity}
+                    onChange={(e) => setEditingProCity(e.target.value)}
+                    className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">Years of Experience</label>
+                  <input
+                    type="number"
+                    value={editingProExp}
+                    onChange={(e) => setEditingProExp(Number(e.target.value))}
+                    className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">Rate per Visit (৳)</label>
+                  <input
+                    type="number"
+                    value={editingProRate}
+                    onChange={(e) => setEditingProRate(e.target.value === "" ? "" : Number(e.target.value))}
+                    className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">Bio / Profile Description</label>
+                <textarea
+                  rows={3}
+                  value={editingProBio}
+                  onChange={(e) => setEditingProBio(e.target.value)}
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                />
+              </div>
+            </div>
+
+            {/* Action Bar */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => deleteProfessionalListing(selectedProfessional.id)}
+                className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer"
+              >
+                🗑️ Delete Professional Listing
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedProfessional(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={savingPro}
+                  onClick={saveProfessionalEdits}
+                  className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 text-xs font-bold rounded-xl shadow-xs cursor-pointer"
+                >
+                  {savingPro ? "Saving..." : "💾 Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: EDIT USER PROFILE */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
+          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 md:p-8 space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <ProfilePhoto name={selectedUser.name} photoUrl={selectedUser.photoUrl} size="lg" />
+                <div>
+                  <h2 className="font-display font-extrabold text-xl text-slate-900">{selectedUser.name}</h2>
+                  <p className="text-xs text-slate-500">{selectedUser.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedUser(null)}
+                className="text-slate-400 hover:text-slate-700 text-lg font-bold p-1 rounded-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Editable Form */}
+            <div className="space-y-4 text-xs">
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">Full Name</label>
+                <input
+                  value={editingUserName}
+                  onChange={(e) => setEditingUserName(e.target.value)}
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">Mobile Phone</label>
+                <input
+                  value={editingUserPhone}
+                  onChange={(e) => setEditingUserPhone(e.target.value)}
+                  placeholder="01XXXXXXXXX"
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">Account Role</label>
+                <select
+                  value={editingUserRole}
+                  onChange={(e) => setEditingUserRole(e.target.value as any)}
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900 font-bold"
+                >
+                  <option value="CUSTOMER">CUSTOMER (Can book services & submit reviews)</option>
+                  <option value="PROFESSIONAL">PROFESSIONAL (Can offer services & list profile)</option>
+                  <option value="ADMIN">ADMIN (Full control center access)</option>
+                </select>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-600 text-[11px] font-medium">
+                <p>User ID: <span className="font-mono text-slate-900">{selectedUser.id}</span></p>
+                <p>Joined: {new Date(selectedUser.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+
+            {/* Action Bar */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => deleteUser(selectedUser.id)}
+                className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer"
+              >
+                🗑️ Delete User
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUser(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={savingUser}
+                  onClick={saveUserEdits}
+                  className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 text-xs font-bold rounded-xl shadow-xs cursor-pointer"
+                >
+                  {savingUser ? "Saving..." : "💾 Save Changes"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -11,6 +11,8 @@ const patchSchema = z.object({
   area: z.string().min(2).max(120).optional(),
   city: z.string().min(2).max(120).optional(),
   bio: z.string().max(500).optional(),
+  yearsExperience: z.number().min(0).max(60).optional(),
+  ratePerVisit: z.number().min(0).nullable().optional(),
 });
 
 export async function GET(

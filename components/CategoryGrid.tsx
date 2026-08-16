@@ -63,11 +63,11 @@ export default function CategoryGrid({ categories }: { categories: Category[] })
               <span>{iconFor[c.slug] ?? "🛠️"}</span>
             </div>
 
-            <span className="font-display font-bold text-sm text-[var(--color-ink)] group-hover:text-[var(--color-teal)] transition-colors">
+            <span className="font-display font-extrabold text-sm text-slate-900 group-hover:text-blue-700 transition-colors">
               {lang === "bn" ? c.nameBn : c.nameEn}
             </span>
 
-            <span className="text-[11px] text-slate-400 font-medium group-hover:text-slate-600 transition-colors">
+            <span className="text-xs text-slate-600 font-semibold group-hover:text-blue-700 transition-colors">
               {lang === "bn" ? "সেবাদাতা খুঁজুন →" : "Find Pros →"}
             </span>
           </Link>

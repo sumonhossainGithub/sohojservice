@@ -60,6 +60,10 @@ sohojservice-drizzle/
 │   │   │       │   └── route.ts          # Admin edit/delete user API
 │   │   │       └── route.ts              # Admin fetch all users API
 │   │   ├── 📁 auth/
+│   │   │   ├── 📁 forgot-password/
+│   │   │   │   └── route.ts              # Generate 6-digit reset code (excludes admin)
+│   │   │   ├── 📁 reset-password/
+│   │   │   │   └── route.ts              # Verify code & update user password hash
 │   │   │   ├── 📁 login/
 │   │   │   │   └── route.ts              # User login & JWT cookie creation
 │   │   │   ├── 📁 logout/
@@ -67,13 +71,17 @@ sohojservice-drizzle/
 │   │   │   ├── 📁 me/
 │   │   │   │   └── route.ts              # Current session check endpoint
 │   │   │   └── 📁 register/
-│   │   │       └── route.ts              # New user registration endpoint
+│   │   │       └── route.ts              # Real email verified user registration endpoint
 │   │   ├── 📁 bookings/
 │   │   │   ├── 📁 [id]/
 │   │   │   │   └── route.ts              # Booking status update (Accept/Decline/Complete)
 │   │   │   └── route.ts                  # Create booking & fetch user bookings
 │   │   ├── 📁 categories/
 │   │   │   └── route.ts                  # Fetch all service categories
+│   │   ├── 📁 instant-bookings/
+│   │   │   ├── 📁 [id]/
+│   │   │   │   └── route.ts              # Admin update instant booking status & notes
+│   │   │   └── route.ts                  # Public submit instant booking / Admin fetch all
 │   │   ├── 📁 locations/
 │   │   │   └── 📁 upazilas/
 │   │   │       └── route.ts              # Bangladesh Upazilas & Districts API
@@ -95,6 +103,8 @@ sohojservice-drizzle/
 │   │   │   └── page.tsx                  # Customer dashboard (active & past bookings)
 │   │   └── 📁 professional/
 │   │       └── page.tsx                  # Pro dashboard (incoming jobs, availability)
+│   ├── 📁 instant-book/
+│   │   └── page.tsx                      # Public instant emergency booking page (No login required)
 │   ├── 📁 login/
 │   │   └── page.tsx                      # Sign in page
 │   ├── 📁 professional/

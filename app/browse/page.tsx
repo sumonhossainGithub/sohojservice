@@ -108,7 +108,6 @@ function BrowseContent() {
         setLocation({ latitude: coords.latitude, longitude: coords.longitude });
         setLocating(false);
 
-        // Optionally reverse geocode to get nearest upazila name
         try {
           const res = await fetch(
             `/api/locations/upazilas?lat=${coords.latitude}&lng=${coords.longitude}`
@@ -165,26 +164,44 @@ function BrowseContent() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
-      <h1 className="font-display text-2xl font-extrabold mb-6">{t("browse")}</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="font-display text-3xl font-extrabold text-slate-900">{t("browse")}</h1>
+          <p className="text-xs text-slate-600 mt-1">
+            {lang === "bn" ? "যাচাইকৃত স্থানীয় কারিগর ও প্রফেশনাল খুঁজুন" : "Find verified local technicians and professionals"}
+          </p>
+        </div>
+        <Link
+          href="/instant-book"
+          className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 px-4 py-2 rounded-xl text-xs font-black shadow-md animate-emergency transition-all w-fit border border-amber-300/80"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-60"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-950"></span>
+          </span>
+          <span>{lang === "bn" ? "জরুরি সার্ভিস দরকার? ইনস্ট্যান্ট বুকিং" : "Need Urgent Help? Instant Book"}</span>
+          <span className="ml-1">→</span>
+        </Link>
+      </div>
 
-      <form onSubmit={applyFilters} className="flex flex-wrap gap-3 mb-8">
+      <form onSubmit={applyFilters} className="flex flex-wrap gap-3 mb-6 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("searchPlaceholder")}
-          className="flex-1 min-w-[200px] border-2 border-[var(--color-ink)] rounded-lg px-3 py-2 text-sm"
+          className="flex-1 min-w-[200px] border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-500 focus:border-blue-600 focus:outline-none"
         />
         <div className="flex-1 min-w-[220px]">
           <BangladeshUpazilaInput
             value={area}
             onChange={setArea}
             placeholder={lang === "bn" ? "উপজেলা বা জেলা খুঁজুন" : "Search an upazila or district"}
-            className="w-full border-2 border-[var(--color-ink)] rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm"
           />
         </div>
         <button
           type="submit"
-          className="signplate bg-[var(--color-marigold)] px-5 py-2 font-semibold text-sm"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 font-bold text-sm rounded-xl transition-all shadow-xs cursor-pointer"
         >
           {t("search")}
         </button>
@@ -195,7 +212,7 @@ function BrowseContent() {
           type="button"
           onClick={useCurrentLocation}
           disabled={locating}
-          className="rounded-lg border-2 border-[var(--color-ink)] bg-white px-3 py-1.5 font-semibold text-xs hover:bg-slate-50 transition-colors disabled:opacity-60 flex items-center gap-1.5"
+          className="rounded-xl border border-slate-300 bg-white px-3.5 py-2 font-bold text-xs text-slate-800 hover:bg-slate-50 transition-colors disabled:opacity-60 flex items-center gap-1.5 shadow-2xs cursor-pointer"
         >
           <span>📍</span>
           <span>{locating ? (lang === "bn" ? "সনাক্ত হচ্ছে..." : "Locating...") : t("useMyLocation")}</span>
@@ -204,99 +221,104 @@ function BrowseContent() {
         <button
           type="button"
           onClick={() => setOnlyAvailable((value) => !value)}
-          className={`rounded-lg border-2 border-[var(--color-ink)] px-3 py-1.5 font-semibold text-xs transition-colors ${
-            onlyAvailable ? "bg-[var(--color-marigold)]" : "bg-white hover:bg-slate-50"
+          className={`rounded-xl border px-3.5 py-2 font-bold text-xs transition-colors cursor-pointer ${
+            onlyAvailable ? "bg-emerald-600 text-white border-emerald-700" : "bg-white text-slate-800 border-slate-300 hover:bg-slate-50"
           }`}
         >
-          {onlyAvailable ? t("availableNowOnly") : t("showAvailableNow")}
+          {onlyAvailable ? `✓ ${t("availableNowOnly")}` : t("showAvailableNow")}
         </button>
 
         {locationMessage && (
-          <span className="text-xs text-[var(--color-teal)] font-semibold bg-teal-50 px-3 py-1 rounded-md border border-teal-200">
+          <span className="text-xs text-blue-900 font-bold bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200">
             {locationMessage}
           </span>
         )}
       </div>
 
       {location && (
-        <MapPreview
-          latitude={location.latitude}
-          longitude={location.longitude}
-          title="your current location"
-          compact
-        />
+        <div className="mb-6">
+          <MapPreview
+            latitude={location.latitude}
+            longitude={location.longitude}
+            title="your current location"
+            compact
+          />
+        </div>
       )}
 
       {loading ? (
-        <p className="text-sm">{t("loading")}</p>
+        <div className="text-center py-16 text-slate-600 font-medium text-sm">{t("loading")}</div>
       ) : sortedResults.length === 0 ? (
-        <p className="text-[var(--color-ink)]/70 text-sm">{t("noProfessionalsFound")}</p>
+        <div className="signplate bg-white p-12 text-center text-slate-600 text-sm border border-slate-200">
+          {t("noProfessionalsFound")}
+        </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {sortedResults.map((p) => (
             <Link
               key={p.id}
               href={`/professional/${p.id}`}
-              className="signplate bg-white p-5 flex flex-col gap-2 transition-transform hover:-translate-y-1 hover:shadow-lg"
+              className="signplate bg-white p-5 flex flex-col gap-2.5 transition-transform hover:-translate-y-1 hover:shadow-lg border border-slate-200"
             >
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-100">
                 <div className="flex items-center gap-3 min-w-0">
                   <ProfilePhoto name={p.name} photoUrl={p.photoUrl} size="sm" />
-                  <span className="font-display font-bold truncate">{p.name}</span>
+                  <span className="font-display font-bold text-slate-900 truncate block">{p.name}</span>
                 </div>
                 {p.isVerified ? (
-                  <span className="text-xs bg-[var(--color-success)] text-white px-2 py-0.5 rounded-full font-medium">
-                    {t("verified")}
+                  <span className="text-[11px] bg-emerald-600 text-white px-2.5 py-0.5 rounded-full font-bold shadow-2xs">
+                    ✓ {t("verified")}
                   </span>
                 ) : (
-                  <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full font-medium">
+                  <span className="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-semibold border border-slate-200">
                     {t("notVerified")}
                   </span>
                 )}
               </div>
 
-              <p className="text-sm text-[var(--color-teal)] font-semibold">
+              <p className="text-sm text-blue-700 font-extrabold">
                 {lang === "bn" ? p.category.nameBn : p.category.nameEn}
               </p>
-              <p className="text-xs text-[var(--color-ink)]/70">
-                {p.area}, {p.city}
+              
+              <p className="text-xs text-slate-600 font-medium">
+                📍 {p.area}, {p.city}
               </p>
 
               <p
-                className={`text-xs font-semibold ${
-                  p.isAvailable ? "text-[var(--color-success)]" : "text-[var(--color-ink)]/45"
+                className={`text-xs font-bold ${
+                  p.isAvailable ? "text-emerald-700" : "text-slate-500"
                 }`}
               >
                 {p.isAvailable ? `● ${t("availableForRequests")}` : `● ${t("currentlyUnavailable")}`}
               </p>
 
               {location && p.latitude != null && p.longitude != null && (
-                <p className="text-xs font-bold text-[var(--color-teal)] bg-blue-50 px-2 py-1 rounded w-fit">
+                <p className="text-xs font-bold text-blue-900 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md w-fit">
                   📍 {distanceInKm(location, { latitude: p.latitude, longitude: p.longitude }).toFixed(1)}{" "}
                   {t("kmAway")}
                 </p>
               )}
 
               {p.bio && (
-                <p className="text-xs text-[var(--color-ink)]/70 line-clamp-2 mt-1">{p.bio}</p>
+                <p className="text-xs text-slate-700 line-clamp-2 mt-0.5 leading-relaxed">{p.bio}</p>
               )}
 
-              <div className="flex items-center justify-between text-xs mt-2 border-t border-slate-100 pt-2 font-medium">
-                <span>
+              <div className="flex items-center justify-between text-xs mt-auto border-t border-slate-100 pt-3">
+                <span className="text-slate-600 font-semibold">
                   {p.yearsExperience} {t("yearsExp")}
                 </span>
                 {p.ratePerVisit ? (
-                  <span className="font-bold text-[var(--color-ink)]">
+                  <span className="font-black text-slate-900 text-sm">
                     ৳{p.ratePerVisit} {t("perVisit")}
                   </span>
                 ) : null}
               </div>
 
               {p.reviewCount > 0 && (
-                <p className="text-xs text-amber-800 font-semibold mt-1">
+                <div className="text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md w-fit">
                   ★ {p.avgRating?.toFixed(1)} ({p.reviewCount}{" "}
                   {p.reviewCount === 1 ? "review" : "reviews"})
-                </p>
+                </div>
               )}
             </Link>
           ))}

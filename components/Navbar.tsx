@@ -52,7 +52,19 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden items-center gap-6 text-sm font-semibold md:flex">
+        <nav className="hidden items-center gap-5 text-sm font-semibold md:flex">
+          {/* Instant Booking Highlight Pill */}
+          <Link
+            href="/instant-book"
+            className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 px-3.5 py-1.5 rounded-full text-xs font-black shadow-md animate-emergency hover:scale-105 active:scale-95 transition-all"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-60"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-950"></span>
+            </span>
+            <span>{t("instantBook")}</span>
+          </Link>
+
           <Link
             href="/browse"
             className={`relative py-1 transition-colors hover:text-[var(--color-teal)] ${
@@ -67,11 +79,6 @@ export default function Navbar() {
 
           {user ? (
             <>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                {roleLabel(user.role)}
-              </span>
-
               <Link
                 href={dashboardHref}
                 className={`relative py-1 transition-colors hover:text-[var(--color-teal)] ${
@@ -96,13 +103,20 @@ export default function Navbar() {
                 {t("myAccount")}
               </Link>
 
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors px-2 py-1"
-              >
-                {t("logout")}
-              </button>
+              {/* Role indicator (Customer / Professional / Admin) with centered Logout button underneath */}
+              <div className="flex flex-col items-center justify-center leading-none -my-1">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-bold text-slate-700 shadow-2xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>{roleLabel(user.role)}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-[10px] font-bold text-red-500 hover:text-red-700 hover:underline transition-colors mt-1 cursor-pointer text-center"
+                >
+                  {t("logout")}
+                </button>
+              </div>
             </>
           ) : (
             <>
@@ -115,14 +129,14 @@ export default function Navbar() {
 
               <Link
                 href="/login"
-                className="text-[var(--color-ink)]/80 hover:text-[var(--color-teal)] transition-colors text-sm font-semibold"
+                className="text-[var(--color-ink)]/80 hover:text-[var(--color-teal)] transition-colors text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-slate-100"
               >
                 {t("login")}
               </Link>
 
               <Link
                 href="/register"
-                className="signplate bg-[var(--color-marigold)] hover:bg-[var(--color-marigold-light)] text-[var(--color-ink)] text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm hover:shadow-md active:scale-95"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs hover:shadow-md active:scale-95"
               >
                 {t("register")}
               </Link>
@@ -141,12 +155,23 @@ export default function Navbar() {
           </button>
         </nav>
 
-        {/* Mobile Hamburger Button */}
+        {/* Mobile Header Elements */}
         <div className="flex items-center gap-2 md:hidden">
+          <Link
+            href="/instant-book"
+            className="bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black px-3 py-1.5 rounded-full shadow-md animate-emergency inline-flex items-center gap-1.5"
+          >
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-60"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-slate-950"></span>
+            </span>
+            <span>{lang === "bn" ? "জরুরি" : "Instant"}</span>
+          </Link>
+
           <button
             type="button"
             onClick={() => setLang(lang === "en" ? "bn" : "en")}
-            className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-700"
+            className="rounded-full border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-700"
           >
             {lang === "en" ? "বাংলা" : "EN"}
           </button>
@@ -166,6 +191,18 @@ export default function Navbar() {
       {open && (
         <div className="flex flex-col gap-3 border-t border-slate-200 bg-white/95 backdrop-blur-xl px-4 py-4 text-sm font-semibold md:hidden shadow-xl motion-enter">
           <Link
+            href="/instant-book"
+            onClick={() => setOpen(false)}
+            className="bg-amber-50 border border-amber-300 text-amber-950 px-4 py-2.5 rounded-xl flex items-center justify-between font-extrabold"
+          >
+            <span className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
+              <span>{t("instantBook")}</span>
+            </span>
+            <span className="text-xs bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full font-black animate-pulse">Emergency</span>
+          </Link>
+
+          <Link
             href="/browse"
             onClick={() => setOpen(false)}
             className={`py-1.5 ${isActive("/browse") ? "text-[var(--color-teal)]" : "text-slate-700"}`}
@@ -175,9 +212,6 @@ export default function Navbar() {
 
           {user ? (
             <>
-              <span className="w-fit rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
-                {t("signedInAs")} {roleLabel(user.role)}
-              </span>
               <Link
                 href={dashboardHref}
                 onClick={() => setOpen(false)}
@@ -192,40 +226,48 @@ export default function Navbar() {
               >
                 {t("myAccount")}
               </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  handleLogout();
-                }}
-                className="text-left text-red-600 py-1.5"
-              >
-                {t("logout")}
-              </button>
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200 mt-1">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>{roleLabel(user.role)}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    handleLogout();
+                  }}
+                  className="text-xs font-bold text-red-600 hover:underline px-2 py-0.5 cursor-pointer"
+                >
+                  {t("logout")}
+                </button>
+              </div>
             </>
           ) : (
             <>
               <Link
                 href="/register?role=professional"
                 onClick={() => setOpen(false)}
-                className="text-[var(--color-teal)] py-1.5"
+                className="text-[var(--color-teal)] py-1.5 font-bold"
               >
                 {t("joinAsPro")}
               </Link>
-              <Link
-                href="/login"
-                onClick={() => setOpen(false)}
-                className="text-slate-700 py-1.5"
-              >
-                {t("login")}
-              </Link>
-              <Link
-                href="/register"
-                onClick={() => setOpen(false)}
-                className="w-fit bg-[var(--color-marigold)] text-[var(--color-ink)] px-4 py-2 rounded-xl text-xs font-bold"
-              >
-                {t("register")}
-              </Link>
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className="text-center py-2 px-3 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50"
+                >
+                  {t("login")}
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setOpen(false)}
+                  className="text-center py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs"
+                >
+                  {t("register")}
+                </Link>
+              </div>
             </>
           )}
         </div>

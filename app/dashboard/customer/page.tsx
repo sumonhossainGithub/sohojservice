@@ -19,11 +19,11 @@ type Booking = {
 };
 
 const statusColor: Record<string, { bg: string; text: string; dot: string }> = {
-  PENDING: { bg: "bg-amber-50 border-amber-200", text: "text-amber-800", dot: "bg-amber-500" },
-  ACCEPTED: { bg: "bg-blue-50 border-blue-200", text: "text-blue-800", dot: "bg-blue-500" },
-  DECLINED: { bg: "bg-red-50 border-red-200", text: "text-red-800", dot: "bg-red-500" },
-  COMPLETED: { bg: "bg-emerald-50 border-emerald-200", text: "text-emerald-800", dot: "bg-emerald-500" },
-  CANCELLED: { bg: "bg-slate-100 border-slate-200", text: "text-slate-700", dot: "bg-slate-400" },
+  PENDING: { bg: "bg-amber-100 border-amber-300", text: "text-amber-950 font-bold", dot: "bg-amber-600" },
+  ACCEPTED: { bg: "bg-blue-100 border-blue-300", text: "text-blue-950 font-bold", dot: "bg-blue-600" },
+  DECLINED: { bg: "bg-red-100 border-red-300", text: "text-red-950 font-bold", dot: "bg-red-600" },
+  COMPLETED: { bg: "bg-emerald-100 border-emerald-300", text: "text-emerald-950 font-bold", dot: "bg-emerald-600" },
+  CANCELLED: { bg: "bg-slate-100 border-slate-300", text: "text-slate-800 font-bold", dot: "bg-slate-500" },
 };
 
 export default function CustomerDashboard() {
@@ -118,7 +118,7 @@ export default function CustomerDashboard() {
           </p>
           <Link
             href="/browse"
-            className="inline-block bg-[var(--color-marigold)] text-[var(--color-ink)] font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow-xs"
+            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-xs"
           >
             Browse Professionals
           </Link>
@@ -159,13 +159,13 @@ export default function CustomerDashboard() {
 
                 <div className="py-3 space-y-2 text-sm">
                   <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
                       Problem / Service Note:
                     </span>
-                    <p className="text-sm text-slate-700 mt-0.5">{b.problemNote}</p>
+                    <p className="text-sm text-slate-900 font-medium mt-0.5 leading-relaxed">{b.problemNote}</p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-1">
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-700 font-semibold pt-1">
                     <span>📍 {b.address}</span>
                     <span>🗓️ {new Date(b.preferredDate).toLocaleString()}</span>
                   </div>
@@ -217,7 +217,7 @@ export default function CustomerDashboard() {
                               type="button"
                               disabled={submittingReview}
                               onClick={() => submitReview(b.id)}
-                              className="bg-[var(--color-marigold)] text-[var(--color-ink)] font-extrabold text-xs px-4 py-2 rounded-lg shadow-xs active:scale-95 disabled:opacity-60"
+                              className="bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-xs active:scale-95 disabled:opacity-60"
                             >
                               {submittingReview ? "Submitting..." : "Submit Review"}
                             </button>

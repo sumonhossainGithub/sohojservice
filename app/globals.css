@@ -2,16 +2,16 @@
 @import "tailwindcss";
 
 :root {
-  --color-ink: #0f172a;
+  --color-ink: #090d16;
   --color-ink-muted: #475569;
   --color-paper: #f8fafc;
   --color-surface: #ffffff;
   --color-teal: #1d4ed8;
-  --color-teal-dark: #1e3a8a;
-  --color-teal-light: #3b82f6;
+  --color-teal-dark: #0f172a;
+  --color-teal-light: #2563eb;
   --color-marigold: #f59e0b;
   --color-marigold-light: #fbbf24;
-  --color-success: #10b981;
+  --color-success: #059669;
   --color-line: #e2e8f0;
   --color-line-subtle: #f1f5f9;
 }
@@ -31,39 +31,41 @@ html {
 }
 
 body {
-  background: var(--color-paper);
+  background-color: var(--color-paper);
   color: var(--color-ink);
   font-family: 'Plus Jakarta Sans', 'Inter', 'Noto Sans Bengali', sans-serif;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(29, 78, 216, 0.04) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.04) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.03) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(29, 78, 216, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.03) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(5, 150, 105, 0.025) 0px, transparent 50%);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .font-display {
   font-family: 'Manrope', 'Plus Jakarta Sans', 'Noto Sans Bengali', sans-serif;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 /* Premium Card Styles */
 .signplate {
-  border: 1px solid var(--color-line);
+  border: 1px solid #e2e8f0;
   border-radius: 1.25rem;
-  background: var(--color-surface);
+  background-color: #ffffff;
   box-shadow: 
-    0 1px 3px 0 rgba(15, 23, 42, 0.03),
-    0 4px 16px -2px rgba(15, 23, 42, 0.04);
-  transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
+    0 1px 3px 0 rgba(15, 23, 42, 0.04),
+    0 4px 16px -2px rgba(15, 23, 42, 0.03);
+  transition: all 240ms cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 
 .signplate:hover {
-  border-color: rgba(29, 78, 216, 0.28);
+  border-color: #93c5fd;
   box-shadow: 
-    0 12px 32px -4px rgba(29, 78, 216, 0.08),
-    0 4px 12px -2px rgba(15, 23, 42, 0.04);
-  transform: translateY(-3px);
+    0 12px 30px -4px rgba(15, 23, 42, 0.08),
+    0 4px 12px -2px rgba(29, 78, 216, 0.04);
+  transform: translateY(-2.5px);
 }
 
 .signplate-interactive {
@@ -71,19 +73,19 @@ body {
 }
 
 .signplate-interactive:active {
-  transform: translateY(-1px) scale(0.995);
+  transform: translateY(-0.5px) scale(0.995);
 }
 
 /* Glassmorphism Accents */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(226, 232, 240, 0.9);
 }
 
 .glass-panel-dark {
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(9, 13, 22, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -91,15 +93,15 @@ body {
 
 /* Motion Graphics & Keyframe Animations */
 .motion-enter {
-  animation: rise-in 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: rise-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .motion-enter-delay-1 {
-  animation: rise-in 650ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: rise-in 600ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .motion-enter-delay-2 {
-  animation: rise-in 650ms 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: rise-in 600ms 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .motion-float {
@@ -139,7 +141,7 @@ body {
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -149,7 +151,7 @@ body {
 
 @keyframes gentle-float {
   0%, 100% {
-    transform: translateY(0) rotate(0deg);
+    transform: translateY(0px) rotate(0deg);
   }
   50% {
     transform: translateY(-8px) rotate(0.8deg);
@@ -158,7 +160,7 @@ body {
 
 @keyframes gentle-float-reverse {
   0%, 100% {
-    transform: translateY(0) rotate(0deg);
+    transform: translateY(0px) rotate(0deg);
   }
   50% {
     transform: translateY(8px) rotate(-0.8deg);
@@ -167,60 +169,54 @@ body {
 
 @keyframes pulse-glow {
   0%, 100% {
-    opacity: 0.9;
-    box-shadow: 0 0 15px rgba(29, 78, 216, 0.25);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
   }
   50% {
-    opacity: 1;
-    box-shadow: 0 0 28px rgba(29, 78, 216, 0.5);
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
   }
 }
 
 @keyframes shimmer {
   0% {
-    transform: translateX(-100%) rotate(30deg);
+    transform: translate(-100%, -100%) rotate(30deg);
   }
-  20%, 100% {
-    transform: translateX(100%) rotate(30deg);
+  100% {
+    transform: translate(100%, 100%) rotate(30deg);
   }
 }
 
-@keyframes morph-blob {
-  0%, 100% {
-    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-    transform: rotate(0deg);
+/* Background blob animations for dynamic hero */
+@keyframes blob-move {
+  0% {
+    transform: translate(0px, 0px) scale(1);
   }
-  50% {
-    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
-    transform: rotate(180deg);
+  33% {
+    transform: translate(25px, -35px) scale(1.08);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.94);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
   }
 }
 
 .blob-animated {
-  animation: morph-blob 18s ease-in-out infinite;
+  animation: blob-move 14s infinite alternate ease-in-out;
 }
 
-/* Sleek custom scrollbars */
-::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
-}
-::-webkit-scrollbar-track {
-  background: var(--color-paper);
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
+@keyframes emergency-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6), 0 2px 10px rgba(245, 158, 11, 0.35);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 0 8px rgba(245, 158, 11, 0), 0 4px 18px rgba(245, 158, 11, 0.55);
   }
 }
+
+.animate-emergency {
+  animation: emergency-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+

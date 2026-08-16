@@ -6,13 +6,14 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
+import { validateRealEmail } from "@/lib/email-validator";
 
 const schema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
+  name: z.string().min(2, "Name must be at least 2 characters."),
+  email: z.string().min(3),
   phone: z.string().min(6).optional(),
   photoUrl: z.string().url().or(z.literal("")).optional(),
-  password: z.string().min(6),
+  password: z.string().min(6, "Password must be at least 6 characters."),
   role: z.enum(["CUSTOMER", "PROFESSIONAL"]).default("CUSTOMER"),
 });
 
@@ -22,14 +23,21 @@ export async function POST(req: Request) {
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Please check your details and try again." },
+      { error: parsed.error.issues[0]?.message || "Please check your details and try again." },
       { status: 400 }
     );
   }
 
   const { name, email, phone, password, role, photoUrl } = parsed.data;
 
-  const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
+  // Strict Real Email Check
+  const emailCheck = validateRealEmail(email);
+  if (!emailCheck.valid) {
+    return NextResponse.json({ error: emailCheck.error }, { status: 400 });
+  }
+  const cleanEmail = emailCheck.normalizedEmail;
+
+  const existing = await db.query.users.findFirst({ where: eq(users.email, cleanEmail) });
   if (existing) {
     return NextResponse.json(
       { error: "An account with this email already exists." },

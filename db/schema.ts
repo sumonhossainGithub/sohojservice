@@ -19,6 +19,13 @@ export const bookingStatusEnum = pgEnum("booking_status", [
   "COMPLETED",
   "CANCELLED",
 ]);
+export const instantBookingStatusEnum = pgEnum("instant_booking_status", [
+  "NEW",
+  "CONTACTED",
+  "ASSIGNED",
+  "COMPLETED",
+  "CANCELLED",
+]);
 
 export const users = pgTable("users", {
   id: text("id").primaryKey().$defaultFn(() => createId()),
@@ -29,7 +36,11 @@ export const users = pgTable("users", {
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
   locationUpdatedAt: timestamp("location_updated_at"),
-  passwordHash: text("password_hash").notNull(),
+  passwordHash: text("password_hash"),
+  supabaseId: text("supabase_id").unique(),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
   role: roleEnum("role").notNull().default("CUSTOMER"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -104,6 +115,22 @@ export const reviews = pgTable(
   ]
 );
 
+export const instantBookings = pgTable("instant_bookings", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  customerName: text("customer_name").notNull(),
+  customerPhone: text("customer_phone").notNull(),
+  categoryName: text("category_name").notNull(),
+  problemDescription: text("problem_description").notNull(),
+  area: text("area").notNull(),
+  fullAddress: text("full_address").notNull(),
+  urgency: text("urgency").notNull().default("ASAP"), // "ASAP" | "TODAY" | "FLEXIBLE"
+  status: instantBookingStatusEnum("status").notNull().default("NEW"),
+  assignedProfessionalId: text("assigned_professional_id").references(() => professionalProfiles.id),
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Relations (so Drizzle's query API can do nested selects, e.g. booking.professional.user)
 export const usersRelations = relations(users, ({ one, many }) => ({
   professional: one(professionalProfiles, {
@@ -163,3 +190,11 @@ export const reviewsRelations = relations(reviews, ({ one }) => ({
     references: [professionalProfiles.id],
   }),
 }));
+
+export const instantBookingsRelations = relations(instantBookings, ({ one }) => ({
+  assignedProfessional: one(professionalProfiles, {
+    fields: [instantBookings.assignedProfessionalId],
+    references: [professionalProfiles.id],
+  }),
+}));
+

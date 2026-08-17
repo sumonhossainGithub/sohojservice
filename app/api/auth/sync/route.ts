@@ -1,20 +1,37 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { eq, or } from "drizzle-orm";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, professionalProfiles } from "@/db/schema";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
     const supabase = await createClient();
-    const {
-      data: { user: supaUser },
-      error,
-    } = await supabase.auth.getUser();
 
-    if (error || !supaUser || !supaUser.email) {
+    // Check bearer token header first if client passes access_token
+    const authHeader = req.headers.get("Authorization");
+    const bearerToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.substring(7).trim()
+      : null;
+
+    let supaUser = null;
+
+    if (bearerToken) {
+      const { data, error } = await supabase.auth.getUser(bearerToken);
+      if (!error && data?.user) {
+        supaUser = data.user;
+      }
+    }
+
+    if (!supaUser) {
+      const { data, error } = await supabase.auth.getUser();
+      if (!error && data?.user) {
+        supaUser = data.user;
+      }
+    }
+
+    if (!supaUser || !supaUser.email) {
       return NextResponse.json({ error: "Unauthorized session." }, { status: 401 });
     }
 
@@ -32,6 +49,8 @@ export async function POST() {
       where: or(eq(users.email, email), eq(users.supabaseId, supaUser.id)),
     });
 
+    let isNewPro = false;
+
     if (dbUser) {
       const [updated] = await db
         .update(users)
@@ -45,6 +64,15 @@ export async function POST() {
         .where(eq(users.id, dbUser.id))
         .returning();
       dbUser = updated;
+
+      if (dbUser.role === "PROFESSIONAL") {
+        const proProfile = await db.query.professionalProfiles.findFirst({
+          where: eq(professionalProfiles.userId, dbUser.id),
+        });
+        if (!proProfile) {
+          isNewPro = true;
+        }
+      }
     } else {
       const role = (supaUser.user_metadata?.role as "CUSTOMER" | "PROFESSIONAL") || "CUSTOMER";
       const [created] = await db
@@ -60,6 +88,10 @@ export async function POST() {
         })
         .returning();
       dbUser = created;
+
+      if (role === "PROFESSIONAL") {
+        isNewPro = true;
+      }
     }
 
     const token = await createSessionToken({
@@ -69,8 +101,17 @@ export async function POST() {
       role: dbUser.role,
     });
 
-    const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE, token, {
+    const response = NextResponse.json({
+      user: {
+        id: dbUser.id,
+        name: dbUser.name,
+        email: dbUser.email,
+        role: dbUser.role,
+      },
+      isNewPro,
+    });
+
+    response.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -78,14 +119,7 @@ export async function POST() {
       maxAge: SESSION_MAX_AGE,
     });
 
-    return NextResponse.json({
-      user: {
-        id: dbUser.id,
-        name: dbUser.name,
-        email: dbUser.email,
-        role: dbUser.role,
-      },
-    });
+    return response;
   } catch (err) {
     console.error("Auth sync error:", err);
     return NextResponse.json({ error: "Failed to sync session." }, { status: 500 });

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import ProfilePhoto from "@/components/ProfilePhoto";
 import BangladeshUpazilaInput from "@/components/BangladeshUpazilaInput";
 
@@ -38,9 +39,11 @@ const statusColor: Record<string, { bg: string; text: string; dot: string }> = {
   CANCELLED: { bg: "bg-slate-100 border-slate-300", text: "text-slate-800 font-bold", dot: "bg-slate-500" },
 };
 
-export default function ProfessionalDashboard() {
+function ProfessionalDashboardContent() {
   const { user, status } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isWelcome = searchParams.get("welcome") === "true";
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -125,7 +128,15 @@ export default function ProfessionalDashboard() {
       }),
     });
     setSaving(false);
-    if (res.ok) setSaved(true);
+    if (res.ok) {
+      setSaved(true);
+      // Refresh existing profile in state
+      fetch("/api/professional/onboard")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (d?.profile) setProfile(d.profile);
+        });
+    }
   }
 
   async function updateBooking(id: string, newStatus: string) {
@@ -142,7 +153,22 @@ export default function ProfessionalDashboard() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10 space-y-10 motion-enter">
+    <div className="max-w-4xl mx-auto px-4 py-10 space-y-8 motion-enter">
+      {/* Welcome Onboarding Banner for New Professionals */}
+      {isWelcome && (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🎉</span>
+            <h2 className="font-display font-extrabold text-base sm:text-lg">
+              Welcome to SohojService! Complete Your Listing Profile
+            </h2>
+          </div>
+          <p className="text-xs sm:text-sm text-blue-100 leading-relaxed max-w-2xl">
+            You are signed in with Google as a **Service Professional**. Please choose your service category, primary upazila, and experience below. Once saved, customers in your area can book you directly!
+          </p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -179,13 +205,13 @@ export default function ProfessionalDashboard() {
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">
-                Service Category
+                Service Category <span className="text-red-500">*</span>
               </label>
               <select
                 required
                 value={categorySlug}
                 onChange={(e) => setCategorySlug(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm bg-white text-slate-900 focus:border-[var(--color-teal)] focus:ring-2 focus:ring-blue-100 focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm bg-white text-slate-900 focus:border-[var(--color-teal)] focus:ring-2 focus:ring-blue-100 focus:outline-none font-medium"
               >
                 <option value="">Select a category</option>
                 {categories.map((c) => (
@@ -218,14 +244,14 @@ export default function ProfessionalDashboard() {
               onChange={(e) => setBio(e.target.value)}
               placeholder="Tell customers about your skills, experience, and tools..."
               rows={3}
-              className="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-900 focus:border-[var(--color-teal)] focus:ring-2 focus:ring-blue-100 focus:outline-none"
+              className="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-900 focus:border-[var(--color-teal)] focus:ring-2 focus:ring-blue-100 focus:outline-none font-medium"
             />
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">
-                Primary Upazila / Area
+                Primary Upazila / Area <span className="text-red-500">*</span>
               </label>
               <BangladeshUpazilaInput
                 required
@@ -239,17 +265,18 @@ export default function ProfessionalDashboard() {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">
-                District
+                City / District
               </label>
               <input
-                required
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="District name"
+                placeholder="e.g. Sirajganj"
                 className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 focus:border-[var(--color-teal)] focus:ring-2 focus:ring-blue-100 focus:outline-none"
               />
             </div>
+          </div>
 
+          <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">
                 Years of Experience
@@ -257,6 +284,7 @@ export default function ProfessionalDashboard() {
               <input
                 type="number"
                 min={0}
+                max={60}
                 value={yearsExperience}
                 onChange={(e) => setYearsExperience(Number(e.target.value))}
                 className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 focus:border-[var(--color-teal)] focus:ring-2 focus:ring-blue-100 focus:outline-none"
@@ -265,7 +293,7 @@ export default function ProfessionalDashboard() {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">
-                Rate per Visit (৳, optional)
+                Rate Per Visit (৳ BDT)
               </label>
               <input
                 type="number"
@@ -280,18 +308,28 @@ export default function ProfessionalDashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 pt-2">
+          <div className="flex flex-wrap items-center gap-3 pt-3">
             <button
               type="submit"
               disabled={saving}
               className="bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-60 cursor-pointer"
             >
-              {saving ? "Saving listing..." : "Save Listing"}
+              {saving ? "Saving listing..." : "Save Listing Profile"}
             </button>
+
             {saved && (
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg">
-                ✅ Listing updated successfully!
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl">
+                  ✅ Profile Saved!
+                </span>
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-800 bg-blue-50 border border-blue-200 px-4 py-2 rounded-xl transition-all"
+                >
+                  <span>Go to Homepage</span>
+                  <span>→</span>
+                </Link>
+              </div>
             )}
           </div>
         </form>
@@ -391,5 +429,13 @@ export default function ProfessionalDashboard() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ProfessionalDashboard() {
+  return (
+    <Suspense fallback={<div className="max-w-4xl mx-auto px-4 py-16 text-center text-sm">Loading professional portal...</div>}>
+      <ProfessionalDashboardContent />
+    </Suspense>
   );
 }

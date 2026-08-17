@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { eq, or } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, professionalProfiles } from "@/db/schema";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 
 export async function GET(request: Request) {
@@ -12,18 +11,19 @@ export async function GET(request: Request) {
   const callbackUrl = searchParams.get("callbackUrl");
   const requestedRole = searchParams.get("role");
 
+  // If no server auth code, forward to client-side session sync handler (handles hash tokens)
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent("No authorization code provided.")}`);
+    return NextResponse.redirect(`${origin}/auth/sync-session?${searchParams.toString()}`);
   }
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   const supaUser = data?.user;
+
   if (error || !supaUser || !supaUser.email) {
     console.error("Supabase code exchange error:", error);
-    return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(error?.message || "Failed to verify authentication session.")}`
-    );
+    // Forward to client sync fallback before reporting error
+    return NextResponse.redirect(`${origin}/auth/sync-session?${searchParams.toString()}`);
   }
 
   const email = supaUser.email.toLowerCase().trim();
@@ -42,6 +42,8 @@ export async function GET(request: Request) {
     where: or(eq(users.email, email), eq(users.supabaseId, supaUser.id)),
   });
 
+  let isNewPro = false;
+
   if (dbUser) {
     // Update existing user with Supabase ID and verified email status
     const [updated] = await db
@@ -57,6 +59,16 @@ export async function GET(request: Request) {
       .returning();
 
     dbUser = updated;
+
+    // Check if this professional needs to complete their initial profile
+    if (dbUser.role === "PROFESSIONAL") {
+      const existingProfile = await db.query.professionalProfiles.findFirst({
+        where: eq(professionalProfiles.userId, dbUser.id),
+      });
+      if (!existingProfile) {
+        isNewPro = true;
+      }
+    }
   } else {
     // Determine initial role
     const assignedRole: "CUSTOMER" | "PROFESSIONAL" =
@@ -78,6 +90,10 @@ export async function GET(request: Request) {
       .returning();
 
     dbUser = created;
+
+    if (assignedRole === "PROFESSIONAL") {
+      isNewPro = true;
+    }
   }
 
   // Create unified application session JWT
@@ -88,8 +104,15 @@ export async function GET(request: Request) {
     role: dbUser.role,
   });
 
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, sessionToken, {
+  const destination = isNewPro
+    ? `${origin}/dashboard/professional?welcome=true`
+    : callbackUrl && !callbackUrl.includes("/login") && !callbackUrl.includes("/register")
+    ? `${origin}${callbackUrl}`
+    : `${origin}/`;
+
+  // Explicitly attach Set-Cookie on the redirect response object
+  const response = NextResponse.redirect(destination);
+  response.cookies.set(SESSION_COOKIE, sessionToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -97,17 +120,5 @@ export async function GET(request: Request) {
     maxAge: SESSION_MAX_AGE,
   });
 
-  // Determine redirect URL
-  let targetUrl = "/";
-  if (callbackUrl && !callbackUrl.includes("/login") && !callbackUrl.includes("/register")) {
-    targetUrl = callbackUrl;
-  } else if (dbUser.role === "ADMIN") {
-    targetUrl = "/dashboard/admin";
-  } else if (dbUser.role === "PROFESSIONAL") {
-    targetUrl = "/dashboard/professional";
-  } else {
-    targetUrl = "/dashboard/customer";
-  }
-
-  return NextResponse.redirect(`${origin}${targetUrl}`);
+  return response;
 }

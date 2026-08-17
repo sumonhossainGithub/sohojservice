@@ -9,6 +9,7 @@ function SyncSessionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refresh } = useAuth();
+  const code = searchParams.get("code");
   const requestedRole = searchParams.get("role");
   const callbackUrl = searchParams.get("callbackUrl");
   const [error, setError] = useState("");
@@ -23,6 +24,7 @@ function SyncSessionContent() {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
+          cache: "no-store",
         });
 
         if (!res.ok) {
@@ -67,7 +69,16 @@ function SyncSessionContent() {
       try {
         const supabase = createClient();
 
-        // Check if session is already stored
+        // 1. If an authorization code was forwarded, exchange it on client
+        if (code) {
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (!exchangeError && data?.session?.access_token) {
+            await handleSessionSync(data.session.access_token);
+            return;
+          }
+        }
+
+        // 2. Check if session is already stored in client storage
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -77,7 +88,7 @@ function SyncSessionContent() {
           return;
         }
 
-        // Listen for OAuth token parsing in browser
+        // 3. Listen for OAuth token parsing in browser
         const {
           data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, newSession) => {
@@ -109,7 +120,7 @@ function SyncSessionContent() {
     return () => {
       unmounted = true;
     };
-  }, [router, refresh, requestedRole, callbackUrl, error]);
+  }, [router, refresh, code, requestedRole, callbackUrl, error]);
 
   if (error) {
     return (

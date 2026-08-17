@@ -29,7 +29,7 @@ export default function GoogleAuthButton({
 
       const redirectTo = `${window.location.origin}/auth/callback?${queryParams.toString()}`;
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo,
@@ -43,6 +43,8 @@ export default function GoogleAuthButton({
       if (error) {
         setLoading(false);
         if (onError) onError(error.message);
+      } else if (data?.url) {
+        window.location.href = data.url;
       }
     } catch (err: unknown) {
       setLoading(false);

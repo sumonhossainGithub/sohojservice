@@ -12,11 +12,16 @@ function SyncSessionContent() {
   const requestedRole = searchParams.get("role");
   const callbackUrl = searchParams.get("callbackUrl");
   const [error, setError] = useState("");
+  const [synced, setSynced] = useState(false);
 
   useEffect(() => {
     let unmounted = false;
+    let syncInitiated = false;
 
     async function handleSessionSync(accessToken: string) {
+      if (syncInitiated) return;
+      syncInitiated = true;
+
       try {
         const res = await fetch("/api/auth/sync", {
           method: "POST",
@@ -28,7 +33,9 @@ function SyncSessionContent() {
 
         if (!res.ok) {
           const data = await res.json();
-          if (!unmounted) setError(data.error || "Failed to create application session.");
+          if (!unmounted) {
+            setError(data.error || "Failed to create application session.");
+          }
           return;
         }
 
@@ -36,6 +43,7 @@ function SyncSessionContent() {
         await refresh();
 
         if (unmounted) return;
+        setSynced(true);
 
         // If new professional without a profile, take them to onboarding
         if (
@@ -65,7 +73,30 @@ function SyncSessionContent() {
       try {
         const supabase = createClient();
 
-        // 1. If an authorization code was forwarded, exchange it on client
+        // 1. Check URL hash parameters (e.g. #access_token=...&refresh_token=...)
+        if (typeof window !== "undefined" && window.location.hash) {
+          const hashClean = window.location.hash.startsWith("#")
+            ? window.location.hash.substring(1)
+            : window.location.hash;
+          const hashParams = new URLSearchParams(hashClean);
+          const hashAccessToken = hashParams.get("access_token");
+          const hashRefreshToken = hashParams.get("refresh_token");
+
+          if (hashAccessToken) {
+            try {
+              await supabase.auth.setSession({
+                access_token: hashAccessToken,
+                refresh_token: hashRefreshToken || "",
+              });
+            } catch {
+              // ignore
+            }
+            await handleSessionSync(hashAccessToken);
+            return;
+          }
+        }
+
+        // 2. If an authorization code was forwarded, exchange it on client
         if (code) {
           const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (!exchangeError && data?.session?.access_token) {
@@ -74,7 +105,7 @@ function SyncSessionContent() {
           }
         }
 
-        // 2. Check if session is already stored in client storage
+        // 3. Check if session is already stored in client storage
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -84,7 +115,7 @@ function SyncSessionContent() {
           return;
         }
 
-        // 3. Listen for OAuth token parsing in browser
+        // 4. Listen for OAuth token parsing in browser
         const {
           data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, newSession) => {
@@ -93,12 +124,12 @@ function SyncSessionContent() {
           }
         });
 
-        // Set an 8-second timeout fallback if no session is received
+        // 5. Fallback safety timer only if no error occurred
         const timeout = setTimeout(() => {
-          if (!unmounted && !error) {
-            window.location.href = "/";
+          if (!unmounted && !syncInitiated && !error) {
+            setError("Authentication took too long to complete. Please try signing in again.");
           }
-        }, 8000);
+        }, 10000);
 
         return () => {
           clearTimeout(timeout);
@@ -120,26 +151,31 @@ function SyncSessionContent() {
 
   if (error) {
     return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
+      <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4 motion-enter">
         <div className="text-3xl">⚠️</div>
         <h2 className="font-display text-xl font-bold text-slate-900">
-          Authentication Notice
+          Sign In Notice
         </h2>
         <p className="text-xs text-red-600 font-bold bg-red-50 p-3 rounded-xl border border-red-200">
           {error}
         </p>
-        <a href="/login" className="inline-block text-xs font-bold text-blue-600 underline">
-          Return to Login
-        </a>
+        <div className="pt-2">
+          <a
+            href="/login"
+            className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl transition-all shadow-sm"
+          >
+            Try Again →
+          </a>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 py-24 text-center space-y-4">
+    <div className="max-w-md mx-auto px-4 py-24 text-center space-y-4 motion-enter">
       <div className="inline-block animate-spin text-3xl">🔄</div>
       <h2 className="font-display text-xl font-bold text-slate-900">
-        Signing you in with Google...
+        {synced ? "Redirecting..." : "Signing you in with Google..."}
       </h2>
       <p className="text-xs text-slate-500">
         Setting up your account and redirecting to SohojService...

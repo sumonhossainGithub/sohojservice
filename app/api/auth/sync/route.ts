@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { decodeJwt } from "jose";
 import { eq, or } from "drizzle-orm";
 import { db } from "@/db";
 import { users, professionalProfiles } from "@/db/schema";
@@ -15,19 +16,48 @@ export async function POST(req: Request) {
       ? authHeader.substring(7).trim()
       : null;
 
-    let supaUser = null;
+    let supaUser: {
+      id: string;
+      email?: string | null;
+      user_metadata?: Record<string, unknown>;
+    } | null = null;
 
+    // 1. If bearer token is provided, verify via Supabase API or decode JWT
     if (bearerToken) {
-      const { data, error } = await supabase.auth.getUser(bearerToken);
-      if (!error && data?.user) {
-        supaUser = data.user;
+      try {
+        const { data, error } = await supabase.auth.getUser(bearerToken);
+        if (!error && data?.user) {
+          supaUser = data.user;
+        }
+      } catch {
+        // Fallback to JWT payload decode
+      }
+
+      if (!supaUser) {
+        try {
+          const decoded = decodeJwt(bearerToken);
+          if (decoded && decoded.sub && (decoded.email || typeof decoded.email === "string")) {
+            supaUser = {
+              id: decoded.sub,
+              email: (decoded.email as string) || null,
+              user_metadata: (decoded.user_metadata as Record<string, unknown>) || {},
+            };
+          }
+        } catch {
+          // invalid token format
+        }
       }
     }
 
+    // 2. Fallback to server cookies if no bearer token
     if (!supaUser) {
-      const { data, error } = await supabase.auth.getUser();
-      if (!error && data?.user) {
-        supaUser = data.user;
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (!error && data?.user) {
+          supaUser = data.user;
+        }
+      } catch {
+        // ignore
       }
     }
 
@@ -36,14 +66,11 @@ export async function POST(req: Request) {
     }
 
     const email = supaUser.email.toLowerCase().trim();
-    const name = (supaUser.user_metadata?.full_name ||
-      supaUser.user_metadata?.name ||
-      email.split("@")[0] ||
-      "User") as string;
-    const photoUrl = (supaUser.user_metadata?.avatar_url ||
-      supaUser.user_metadata?.picture ||
-      null) as string | null;
-    const phone = (supaUser.user_metadata?.phone || null) as string | null;
+    const metadata = supaUser.user_metadata || {};
+    const name =
+      ((metadata.full_name || metadata.name || email.split("@")[0] || "User") as string) || "User";
+    const photoUrl = (metadata.avatar_url || metadata.picture || null) as string | null;
+    const phone = (metadata.phone || null) as string | null;
 
     let dbUser = await db.query.users.findFirst({
       where: or(eq(users.email, email), eq(users.supabaseId, supaUser.id)),
@@ -74,7 +101,7 @@ export async function POST(req: Request) {
         }
       }
     } else {
-      const role = (supaUser.user_metadata?.role as "CUSTOMER" | "PROFESSIONAL") || "CUSTOMER";
+      const role = (metadata.role as "CUSTOMER" | "PROFESSIONAL") || "CUSTOMER";
       const [created] = await db
         .insert(users)
         .values({

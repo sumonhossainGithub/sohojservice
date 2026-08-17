@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 
 function SyncSessionContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { refresh } = useAuth();
   const code = searchParams.get("code");
@@ -43,21 +42,18 @@ function SyncSessionContent() {
           syncData.isNewPro ||
           (syncData.user?.role === "PROFESSIONAL" && requestedRole === "PROFESSIONAL")
         ) {
-          router.push("/dashboard/professional?welcome=true");
-          router.refresh();
+          window.location.href = "/dashboard/professional?welcome=true";
           return;
         }
 
         // If a specific callback was requested
         if (callbackUrl && !callbackUrl.includes("/login") && !callbackUrl.includes("/register")) {
-          router.push(callbackUrl);
-          router.refresh();
+          window.location.href = callbackUrl;
           return;
         }
 
-        // Default: Redirect to Home Page ('/') with logged-in environment!
-        router.push("/");
-        router.refresh();
+        // Default: Full document navigation to Home Page ('/') with complete session cookies!
+        window.location.href = "/";
       } catch (err: unknown) {
         if (!unmounted) {
           setError(err instanceof Error ? err.message : "Failed to sync authentication session.");
@@ -97,12 +93,12 @@ function SyncSessionContent() {
           }
         });
 
-        // Set a 6-second timeout fallback if no session is received
+        // Set an 8-second timeout fallback if no session is received
         const timeout = setTimeout(() => {
           if (!unmounted && !error) {
-            router.push("/");
+            window.location.href = "/";
           }
-        }, 6000);
+        }, 8000);
 
         return () => {
           clearTimeout(timeout);
@@ -120,7 +116,7 @@ function SyncSessionContent() {
     return () => {
       unmounted = true;
     };
-  }, [router, refresh, code, requestedRole, callbackUrl, error]);
+  }, [code, refresh, requestedRole, callbackUrl, error]);
 
   if (error) {
     return (

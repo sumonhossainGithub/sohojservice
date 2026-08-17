@@ -111,9 +111,10 @@ export async function POST(req: Request) {
       isNewPro,
     });
 
+    const isHttps = req.url.startsWith("https://");
     response.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isHttps,
       sameSite: "lax",
       path: "/",
       maxAge: SESSION_MAX_AGE,

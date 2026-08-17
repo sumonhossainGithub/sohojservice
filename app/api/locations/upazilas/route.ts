@@ -15,20 +15,35 @@ export async function GET(req: Request) {
       if (!isNaN(lat) && !isNaN(lng)) {
         const nearest = findNearestLocation(lat, lng);
         if (nearest) {
-          return NextResponse.json({
-            nearest: nearest.location,
-            distanceKm: Math.round(nearest.distanceKm * 10) / 10,
-          });
+          return NextResponse.json(
+            {
+              nearest: nearest.location,
+              distanceKm: Math.round(nearest.distanceKm * 10) / 10,
+            },
+            {
+              headers: {
+                "Cache-Control": "private, no-cache",
+              },
+            }
+          );
         }
       }
     }
 
-    // Default: Return the comprehensive list of all Bangladesh locations
-    return NextResponse.json({
-      locations: BANGLADESH_LOCATIONS,
-      total: BANGLADESH_LOCATIONS.length,
-      coverage: "Bangladesh (64 Districts & Upazilas)",
-    });
+    // Default: Return the comprehensive list of all Bangladesh locations with caching
+    return NextResponse.json(
+      {
+        locations: BANGLADESH_LOCATIONS,
+        total: BANGLADESH_LOCATIONS.length,
+        coverage: "Bangladesh (64 Districts & Upazilas)",
+      },
+      {
+        headers: {
+          "Cache-Control":
+            "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
+        },
+      }
+    );
   } catch (error) {
     return NextResponse.json({
       locations: BANGLADESH_LOCATIONS,

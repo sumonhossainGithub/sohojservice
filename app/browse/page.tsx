@@ -184,14 +184,14 @@ function BrowseContent() {
         </Link>
       </div>
 
-      <form onSubmit={applyFilters} className="flex flex-wrap gap-3 mb-6 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+      <form onSubmit={applyFilters} className="relative z-30 flex flex-col sm:flex-row gap-3 mb-6 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("searchPlaceholder")}
-          className="flex-1 min-w-[200px] border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-500 focus:border-blue-600 focus:outline-none"
+          className="flex-1 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-500 focus:border-blue-600 focus:outline-none"
         />
-        <div className="flex-1 min-w-[220px]">
+        <div className="flex-1 relative">
           <BangladeshUpazilaInput
             value={area}
             onChange={setArea}
@@ -201,7 +201,7 @@ function BrowseContent() {
         </div>
         <button
           type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 font-bold text-sm rounded-xl transition-all shadow-xs cursor-pointer"
+          className="w-full sm:w-auto shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 font-bold text-sm rounded-xl transition-all shadow-xs cursor-pointer"
         >
           {t("search")}
         </button>

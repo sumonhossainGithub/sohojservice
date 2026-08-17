@@ -39,6 +39,9 @@ const defaultStarterLocations: BDLocation[] = [
   { nameEn: "Pabna Sadar", nameBn: "পাবনা সদর", district: "Pabna", division: "Rajshahi" },
 ];
 
+// In-memory module cache to avoid repeat network requests
+let globalCachedLocations: BDLocation[] | null = null;
+
 export default function BangladeshUpazilaInput({
   value,
   onChange,
@@ -49,10 +52,11 @@ export default function BangladeshUpazilaInput({
   onLocationSelect,
 }: Props) {
   const { lang } = useLanguage();
-  const listId = useId();
   const menuId = useId();
   const wrapper = useRef<HTMLDivElement>(null);
-  const [locations, setLocations] = useState<BDLocation[]>(defaultStarterLocations);
+  const [locations, setLocations] = useState<BDLocation[]>(
+    globalCachedLocations ?? defaultStarterLocations
+  );
   const [open, setOpen] = useState(false);
   const [locating, setLocating] = useState(false);
   const [gpsError, setGpsError] = useState("");
@@ -62,10 +66,16 @@ export default function BangladeshUpazilaInput({
     placeholder ?? (lang === "bn" ? "উপজেলা বা জেলা খুঁজুন..." : "Search upazila or district...");
 
   useEffect(() => {
+    if (globalCachedLocations) {
+      setLocations(globalCachedLocations);
+      return;
+    }
+
     fetch("/api/locations/upazilas")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data.locations) && data.locations.length) {
+          globalCachedLocations = data.locations;
           setLocations(data.locations);
         }
       })
@@ -163,7 +173,6 @@ export default function BangladeshUpazilaInput({
       <div className="relative flex items-center">
         <input
           required={required}
-          list={listId}
           value={value}
           onFocus={() => setOpen(true)}
           onChange={(e) => {
@@ -174,7 +183,7 @@ export default function BangladeshUpazilaInput({
           }}
           onKeyDown={handleKeyDown}
           placeholder={defaultPlaceholder}
-          className={`text-slate-900 font-medium placeholder:text-slate-500 bg-white ${className} ${showGpsButton ? "pr-16" : "pr-8"}`}
+          className={`text-slate-900 font-medium placeholder:text-slate-400 bg-white ${className} ${showGpsButton ? "pr-16" : "pr-8"}`}
           autoComplete="off"
           role="combobox"
           aria-autocomplete="list"
@@ -190,8 +199,9 @@ export default function BangladeshUpazilaInput({
                 onChange("");
                 setOpen(false);
               }}
-              className="text-xs text-slate-500 hover:text-slate-800 font-bold px-1 py-0.5 cursor-pointer"
+              className="text-xs text-slate-400 hover:text-slate-700 font-bold p-1 cursor-pointer"
               title="Clear location"
+              aria-label="Clear location input"
             >
               ✕
             </button>
@@ -202,40 +212,33 @@ export default function BangladeshUpazilaInput({
               type="button"
               onClick={handleGpsDetect}
               disabled={locating}
-              className="flex items-center gap-1 text-[11px] font-extrabold bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 px-2 py-1 rounded-md transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
+              className="flex items-center gap-1 text-[11px] font-extrabold bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 px-2 py-1 rounded-lg transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
               title={lang === "bn" ? "আমার জিপিএস অবস্থান সনাক্ত করুন" : "Detect my GPS location"}
+              aria-label="Detect GPS location"
             >
               {locating ? (
                 <span className="inline-block animate-spin">⏳</span>
               ) : (
                 <span>📍</span>
               )}
-              <span className="font-bold">{lang === "bn" ? "GPS" : "GPS"}</span>
+              <span className="font-bold">GPS</span>
             </button>
           )}
         </div>
       </div>
 
-      <datalist id={listId}>
-        {locations.map((loc) => (
-          <option key={`${loc.district}-${loc.nameEn}`} value={loc.nameEn}>
-            {loc.nameBn} · {loc.district}
-          </option>
-        ))}
-      </datalist>
-
       {gpsError && (
-        <p className="text-[11px] text-red-600 font-bold mt-1 pl-1 bg-red-50 p-1 rounded border border-red-200">{gpsError}</p>
+        <p className="text-[11px] text-red-600 font-bold mt-1 pl-1 bg-red-50 p-1 rounded-lg border border-red-200">{gpsError}</p>
       )}
 
       {open && (
         <div
           id={menuId}
-          className="absolute z-50 mt-1 max-h-72 w-full overflow-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl"
+          className="absolute left-0 right-0 top-full z-[100] mt-1.5 max-h-72 w-full min-w-[280px] sm:min-w-[340px] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl ring-1 ring-black/5 motion-enter"
         >
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100 bg-slate-50/80 rounded-t-lg">
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-600">
-              {lang === "bn" ? "বাংলাদেশের উপজেলা ও জেলাসমূহ" : "Bangladesh Location Suggestions"}
+          <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50/90 rounded-xl mb-1">
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+              {lang === "bn" ? "বাংলাদেশের উপজেলা ও জেলাসমূহ" : "Bangladesh Locations"}
             </p>
             {showGpsButton && (
               <button
@@ -250,38 +253,50 @@ export default function BangladeshUpazilaInput({
           </div>
 
           {suggestions.length === 0 ? (
-            <div className="p-3 text-center text-xs text-slate-600 font-medium">
+            <div className="p-4 text-center text-xs text-slate-500 font-medium">
               {lang === "bn"
                 ? "কোনো মিল পাওয়া যায়নি। জেলা বা উপজেলার নাম লিখুন।"
                 : "No matching location found. Type your district or upazila name."}
             </div>
           ) : (
-            suggestions.map((loc, idx) => {
-              const isSelected = activeIndex === idx;
-              return (
-                <button
-                  key={`${loc.district}-${loc.nameEn}`}
-                  type="button"
-                  onClick={() => handleSelect(loc)}
-                  onMouseEnter={() => setActiveIndex(idx)}
-                  className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors cursor-pointer ${
-                    isSelected ? "bg-blue-100 text-blue-950 font-bold" : "hover:bg-slate-100 text-slate-900"
-                  }`}
-                >
-                  <div>
-                    <span className="font-bold block text-slate-900">
-                      {lang === "bn" && loc.nameBn ? loc.nameBn : loc.nameEn}
+            <div className="space-y-0.5">
+              {suggestions.map((loc, idx) => {
+                const isSelected = activeIndex === idx;
+                return (
+                  <button
+                    key={`${loc.district}-${loc.nameEn}`}
+                    type="button"
+                    onClick={() => handleSelect(loc)}
+                    onMouseEnter={() => setActiveIndex(idx)}
+                    className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-blue-600 text-white font-bold shadow-xs"
+                        : "hover:bg-slate-100 text-slate-900"
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <span className={`font-bold block truncate text-sm ${isSelected ? "text-white" : "text-slate-900"}`}>
+                        {lang === "bn" && loc.nameBn ? loc.nameBn : loc.nameEn}
+                      </span>
+                      {lang === "bn" && loc.nameBn && (
+                        <span className={`text-[11px] font-medium block truncate ${isSelected ? "text-blue-100" : "text-slate-500"}`}>
+                          {loc.nameEn}
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`text-xs font-bold px-2.5 py-1 rounded-lg shrink-0 whitespace-nowrap ${
+                        isSelected
+                          ? "bg-white/20 text-white border border-white/30"
+                          : "bg-slate-100 text-slate-700 border border-slate-200"
+                      }`}
+                    >
+                      {loc.district} {loc.division ? `(${loc.division})` : ""}
                     </span>
-                    {lang === "bn" && loc.nameBn && (
-                      <span className="text-[11px] text-slate-500 font-medium">{loc.nameEn}</span>
-                    )}
-                  </div>
-                  <span className="text-xs text-slate-800 font-bold bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full whitespace-nowrap">
-                    {loc.district} {loc.division ? `(${loc.division})` : ""}
-                  </span>
-                </button>
-              );
-            })
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
       )}

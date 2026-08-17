@@ -5,12 +5,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import BangladeshUpazilaInput from "@/components/BangladeshUpazilaInput";
+import InstantBookingTrackerModal from "@/components/InstantBookingTrackerModal";
 
 export default function HomeHero() {
   const { lang, t } = useLanguage();
   const router = useRouter();
   const [q, setQ] = useState("");
   const [area, setArea] = useState("");
+  const [trackModalOpen, setTrackModalOpen] = useState(false);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -100,23 +102,44 @@ export default function HomeHero() {
             </form>
           </div>
 
-          {/* Instant Book Quick Action Callout */}
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <Link
-              href="/instant-book"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:opacity-95 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-lg hover:shadow-xl active:scale-95 transition-all animate-emergency border border-amber-300/60"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-60"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-950"></span>
+          {/* Instant Book Quick Action Callout with Tracking */}
+          <div className="space-y-2 pt-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href="/instant-book"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:opacity-95 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-lg hover:shadow-xl active:scale-95 transition-all animate-emergency border border-amber-300/60"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-60"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-950"></span>
+                </span>
+                <span>
+                  {lang === "bn"
+                    ? "জরুরি সার্ভিস দরকার? ইনস্ট্যান্ট বুকিং"
+                    : "Need Urgent Help? Instant Book"}
+                </span>
+                <span>→</span>
+              </Link>
+            </div>
+
+            {/* Tracking Option placed directly under the Instant Book button */}
+            <div className="flex flex-wrap items-center gap-2 text-xs pt-0.5">
+              <span className="text-blue-100/80 font-medium">
+                {lang === "bn" ? "আগে অনুরোধ করেছেন?" : "Already requested?"}
               </span>
-              <span>
-                {lang === "bn"
-                  ? "জরুরি সার্ভিস দরকার? ইনস্ট্যান্ট বুকিং"
-                  : "Need Urgent Help? Instant Book"}
-              </span>
-              <span>→</span>
-            </Link>
+              <button
+                type="button"
+                onClick={() => setTrackModalOpen(true)}
+                className="inline-flex items-center gap-1.5 text-amber-300 hover:text-amber-200 font-extrabold underline decoration-amber-400/60 underline-offset-4 hover:decoration-amber-300 transition-all cursor-pointer"
+              >
+                <span>📍</span>
+                <span>
+                  {lang === "bn"
+                    ? "ইনস্ট্যান্ট রিকোয়েস্ট ট্র্যাক করুন"
+                    : "Track Instant Request Status"}
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Quick Category Chips */}
@@ -191,6 +214,12 @@ export default function HomeHero() {
           </div>
         </div>
       </div>
+
+      {/* Instant Booking Live Tracking Modal */}
+      <InstantBookingTrackerModal
+        isOpen={trackModalOpen}
+        onClose={() => setTrackModalOpen(false)}
+      />
     </section>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import BangladeshUpazilaInput from "@/components/BangladeshUpazilaInput";
+import InstantBookingTrackerModal from "@/components/InstantBookingTrackerModal";
 
 const SERVICE_OPTIONS = [
   { slug: "electrician", nameEn: "Electrician / Electrical Work", nameBn: "ইলেকট্রিশিয়ান / বৈদ্যুতিক কাজ" },
@@ -20,7 +21,7 @@ const SERVICE_OPTIONS = [
 ];
 
 export default function InstantBookPage() {
-  const { lang, t } = useLanguage();
+  const { lang } = useLanguage();
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -32,7 +33,20 @@ export default function InstantBookPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [submittedBooking, setSubmittedBooking] = useState<any | null>(null);
+  const [submittedBooking, setSubmittedBooking] = useState<{
+    id: string;
+    customerName: string;
+    customerPhone: string;
+    categoryName: string;
+    problemDescription: string;
+    area: string;
+    fullAddress: string;
+    urgency: "ASAP" | "TODAY" | "FLEXIBLE";
+  } | null>(null);
+
+  // Tracking modal state
+  const [trackModalOpen, setTrackModalOpen] = useState(false);
+  const [trackQuery, setTrackQuery] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -87,6 +101,25 @@ export default function InstantBookPage() {
             ? "কোনো অ্যাকাউন্ট বা রেজিস্ট্রেশন লাগবে না। আপনার কাজের বিবরণ দিন — আমাদের অ্যাডমিন টিম সরাসরি আপনার এলাকার সেরা যাচাইকৃত টেকনিশিয়ান নির্ধারণ করে ফোনে কনফার্ম করবে।"
             : "No registration required. Submit your requirements in seconds — our support team will match and dispatch the top verified technician in your area."}
         </p>
+
+        {/* Quick Track Action Button in Header */}
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => {
+              setTrackQuery("");
+              setTrackModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-4 py-1.5 rounded-full transition-all cursor-pointer shadow-2xs"
+          >
+            <span>📍</span>
+            <span>
+              {lang === "bn"
+                ? "আগের অনুরোধের স্ট্যাটাস ট্র্যাক করুন"
+                : "Track Existing Instant Request"}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Trust Highlights Grid */}
@@ -161,6 +194,18 @@ export default function InstantBookPage() {
             <button
               type="button"
               onClick={() => {
+                setTrackQuery(submittedBooking.id);
+                setTrackModalOpen(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer flex items-center gap-1.5"
+            >
+              <span>📍</span>
+              <span>{lang === "bn" ? "লাইভ ট্র্যাকিং দেখুন" : "Track Live Status"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
                 setSubmittedBooking(null);
                 setProblemDescription("");
               }}
@@ -168,6 +213,7 @@ export default function InstantBookPage() {
             >
               {lang === "bn" ? "আরেকটি অনুরোধ পাঠান" : "Submit Another Request"}
             </button>
+
             <Link
               href="/browse"
               className="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold text-xs px-5 py-3 rounded-xl transition-all"
@@ -180,106 +226,107 @@ export default function InstantBookPage() {
         /* Instant Book Form */
         <div className="bg-white p-6 sm:p-10 shadow-xl rounded-3xl border border-slate-200">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Step 1: Urgency Selector */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">
-                1. {lang === "bn" ? "কখন সেবা প্রয়োজন?" : "When Do You Need the Service?"}
-              </label>
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                <button
-                  type="button"
-                  onClick={() => setUrgency("ASAP")}
-                  className={`p-3.5 rounded-2xl border text-center transition-all cursor-pointer ${
-                    urgency === "ASAP"
-                      ? "border-blue-600 bg-blue-50 text-blue-950 font-extrabold ring-2 ring-blue-200"
-                      : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold"
-                  }`}
-                >
-                  <span className="text-xs block font-bold">{lang === "bn" ? "জরুরি (১-২ ঘণ্টা)" : "Urgent (1-2 Hours)"}</span>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">{lang === "bn" ? "যত দ্রুত সম্ভব" : "Immediate Dispatch"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setUrgency("TODAY")}
-                  className={`p-3.5 rounded-2xl border text-center transition-all cursor-pointer ${
-                    urgency === "TODAY"
-                      ? "border-blue-600 bg-blue-50 text-blue-950 font-extrabold ring-2 ring-blue-200"
-                      : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold"
-                  }`}
-                >
-                  <span className="text-xs block font-bold">{lang === "bn" ? "আজকের মধ্যে" : "Today"}</span>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">{lang === "bn" ? "আজ যে কোনো সময়" : "Same-day Service"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setUrgency("FLEXIBLE")}
-                  className={`p-3.5 rounded-2xl border text-center transition-all cursor-pointer ${
-                    urgency === "FLEXIBLE"
-                      ? "border-blue-600 bg-blue-50 text-blue-950 font-extrabold ring-2 ring-blue-200"
-                      : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold"
-                  }`}
-                >
-                  <span className="text-xs block font-bold">{lang === "bn" ? "সুবিধামতো সময়ে" : "Flexible"}</span>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">{lang === "bn" ? "পরবর্তী দিনগুলোতে" : "Within This Week"}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Step 2: Contact Info */}
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Customer Name */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                  2. {lang === "bn" ? "আপনার নাম" : "Your Name"} <span className="text-red-600">*</span>
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide mb-1.5">
+                  {lang === "bn" ? "আপনার নাম" : "Your Full Name"} <span className="text-red-500">*</span>
                 </label>
                 <input
                   required
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder={lang === "bn" ? "যেমন: সুজন মাহমুদ" : "e.g. Sujon Mahmud"}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
+                  placeholder={lang === "bn" ? "উদা: সুজন আহমেদ" : "e.g. Sujon Ahmed"}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all font-medium"
                 />
               </div>
 
+              {/* Customer Phone */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                  3. {lang === "bn" ? "মোবাইল নম্বর (কলের জন্য)" : "Mobile Number (For Callback)"} <span className="text-red-600">*</span>
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide mb-1.5">
+                  {lang === "bn" ? "মোবাইল নম্বর" : "Mobile Phone Number"} <span className="text-red-500">*</span>
                 </label>
                 <input
-                  required
                   type="tel"
+                  required
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder="01XXXXXXXXX"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all font-medium"
                 />
+                <span className="text-[11px] text-slate-500 mt-1 block">
+                  {lang === "bn" ? "অ্যাডমিন এই নম্বরে কল করে কাজ কনফার্ম করবে।" : "Support will call this number to verify dispatch."}
+                </span>
               </div>
             </div>
 
-            {/* Step 3: Service Type */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                4. {lang === "bn" ? "কী ধরনের সেবা প্রয়োজন?" : "What Service Do You Need?"} <span className="text-red-600">*</span>
-              </label>
-              <select
-                required
-                value={categoryName}
-                onChange={(e) => setCategoryName(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none cursor-pointer"
-              >
-                {SERVICE_OPTIONS.map((s) => (
-                  <option key={s.slug} value={s.nameEn}>
-                    {lang === "bn" ? s.nameBn : s.nameEn}
-                  </option>
-                ))}
-              </select>
+            {/* Service Category & Urgency */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Category */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide mb-1.5">
+                  {lang === "bn" ? "প্রয়োজনীয় সেবা" : "Select Service Category"} <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={categoryName}
+                  onChange={(e) => setCategoryName(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all font-medium"
+                >
+                  {SERVICE_OPTIONS.map((opt) => (
+                    <option key={opt.slug} value={opt.nameEn}>
+                      {lang === "bn" ? opt.nameBn : opt.nameEn}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Urgency Selector */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide mb-1.5">
+                  {lang === "bn" ? "কাজের জরুরি ভাব" : "How Urgent Is This?"} <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setUrgency("ASAP")}
+                    className={`py-2 px-2 rounded-xl text-xs font-extrabold border transition-all cursor-pointer text-center ${
+                      urgency === "ASAP"
+                        ? "bg-red-50 border-red-400 text-red-700 shadow-xs ring-1 ring-red-300"
+                        : "border-slate-200 hover:bg-slate-50 text-slate-600"
+                    }`}
+                  >
+                    🚨 {lang === "bn" ? "এখনই (জরুরি)" : "ASAP (Emergency)"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUrgency("TODAY")}
+                    className={`py-2 px-2 rounded-xl text-xs font-extrabold border transition-all cursor-pointer text-center ${
+                      urgency === "TODAY"
+                        ? "bg-amber-50 border-amber-400 text-amber-700 shadow-xs ring-1 ring-amber-300"
+                        : "border-slate-200 hover:bg-slate-50 text-slate-600"
+                    }`}
+                  >
+                    ⏱️ {lang === "bn" ? "আজকের মধ্যে" : "Today"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUrgency("FLEXIBLE")}
+                    className={`py-2 px-2 rounded-xl text-xs font-extrabold border transition-all cursor-pointer text-center ${
+                      urgency === "FLEXIBLE"
+                        ? "bg-blue-50 border-blue-400 text-blue-700 shadow-xs ring-1 ring-blue-300"
+                        : "border-slate-200 hover:bg-slate-50 text-slate-600"
+                    }`}
+                  >
+                    📅 {lang === "bn" ? "সুবিধাজনক সময়ে" : "Flexible"}
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Step 4: Problem Details */}
+            {/* Problem Description */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                5. {lang === "bn" ? "সমস্যা বা কাজের বিবরণ লিখুন" : "Describe the Problem / Requirement"} <span className="text-red-600">*</span>
+              <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide mb-1.5">
+                {lang === "bn" ? "সমস্যার বিবরণ" : "Describe the Problem"} <span className="text-red-500">*</span>
               </label>
               <textarea
                 required
@@ -288,37 +335,39 @@ export default function InstantBookPage() {
                 onChange={(e) => setProblemDescription(e.target.value)}
                 placeholder={
                   lang === "bn"
-                    ? "যেমন: মেইন সুইচে সমস্যা হচ্ছে, লাইট জ্বলছে না। অথবা ২ টন এসি কুলিং করছে না।"
-                    : "e.g. Main power tripped, water leaking under sink, or 9th class math tutor needed..."
+                    ? "উদা: মেইন সুইচে শর্ট সার্কিট হচ্ছে এবং কারেন্ট নেই / বেসিনের পাইপ ফেটে পানি পড়ছে..."
+                    : "e.g. Main switch tripping continuously and sparking / Bathroom pipe leaking water..."
                 }
-                className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all font-medium"
               />
             </div>
 
-            {/* Step 5: Location Details */}
-            <div className="grid sm:grid-cols-2 gap-4">
+            {/* Upazila & Full Address */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Upazila */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                  6. {lang === "bn" ? "উপজেলা / এলাকা" : "Upazila / Area"} <span className="text-red-600">*</span>
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide mb-1.5">
+                  {lang === "bn" ? "আপনার উপজেলা / থানা" : "Your Upazila / Police Station"} <span className="text-red-500">*</span>
                 </label>
                 <BangladeshUpazilaInput
                   required
                   value={area}
                   onChange={setArea}
-                  placeholder={lang === "bn" ? "উপজেলা বা জেলা খুঁজুন..." : "Search upazila..."}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900"
+                  placeholder={lang === "bn" ? "উপজেলা খুঁজুন (উদা: সিরাজগঞ্জ সদর)" : "Search upazila (e.g. Sirajganj Sadar)"}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm"
                 />
               </div>
 
+              {/* Detailed Address */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                  7. {lang === "bn" ? "বিস্তারিত ঠিকানা / ল্যান্ডমার্ক" : "Detailed Address / Landmark"}
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide mb-1.5">
+                  {lang === "bn" ? "বিস্তারিত ঠিকানা / বাড়ি বা রোডের নাম" : "Detailed Address / Street & Landmark"}
                 </label>
                 <input
                   value={fullAddress}
                   onChange={(e) => setFullAddress(e.target.value)}
-                  placeholder={lang === "bn" ? "রোড/বাড়ি নং, পরিচিত জায়গা..." : "House/Road, near landmark..."}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
+                  placeholder={lang === "bn" ? "রোড ২, বাড়ি ১৫, মোড়/বাজারের নাম..." : "House 15, Road 2, Near Mosque..."}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all font-medium"
                 />
               </div>
             </div>
@@ -353,6 +402,13 @@ export default function InstantBookPage() {
           </form>
         </div>
       )}
+
+      {/* Tracker Modal */}
+      <InstantBookingTrackerModal
+        isOpen={trackModalOpen}
+        onClose={() => setTrackModalOpen(false)}
+        initialQuery={trackQuery}
+      />
     </div>
   );
 }

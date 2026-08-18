@@ -60,7 +60,16 @@ type InstantBookingItem = {
   updatedAt: string;
 };
 
-type AdminTab = "instantBookings" | "professionals" | "bookings" | "users" | "completedTasks";
+type AdminCategory = {
+  id: string;
+  slug: string;
+  nameEn: string;
+  nameBn: string;
+  icon: string;
+  proCount?: number;
+};
+
+type AdminTab = "instantBookings" | "professionals" | "bookings" | "users" | "completedTasks" | "categories";
 type TimeframeFilter = "ALL" | "TODAY" | "THIS_WEEK" | "THIS_MONTH" | "THIS_YEAR";
 
 type ProfessionalDetails = {
@@ -131,6 +140,7 @@ export default function AdminDashboard() {
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
   const [instantBookingsList, setInstantBookingsList] = useState<InstantBookingItem[]>([]);
   const [users, setUsers] = useState<UserItem[]>([]);
+  const [categoriesList, setCategoriesList] = useState<AdminCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<AdminTab>("instantBookings");
   const [search, setSearch] = useState("");
@@ -139,6 +149,21 @@ export default function AdminDashboard() {
   const [timeframe, setTimeframe] = useState<TimeframeFilter>("ALL");
   const [actionMessage, setActionMessage] = useState("");
   const [detailsLoading, setDetailsLoading] = useState(false);
+
+  // Category Modals State
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCatNameEn, setNewCatNameEn] = useState("");
+  const [newCatNameBn, setNewCatNameBn] = useState("");
+  const [newCatSlug, setNewCatSlug] = useState("");
+  const [newCatIcon, setNewCatIcon] = useState("wrench");
+  const [creatingCategory, setCreatingCategory] = useState(false);
+
+  const [editingCategory, setEditingCategory] = useState<AdminCategory | null>(null);
+  const [editCatNameEn, setEditCatNameEn] = useState("");
+  const [editCatNameBn, setEditCatNameBn] = useState("");
+  const [editCatSlug, setEditCatSlug] = useState("");
+  const [editCatIcon, setEditCatIcon] = useState("wrench");
+  const [savingCategory, setSavingCategory] = useState(false);
 
   // Selected Professional Detail Modal State
   const [selectedProfessional, setSelectedProfessional] = useState<ProfessionalDetails | null>(null);
@@ -174,12 +199,14 @@ export default function AdminDashboard() {
       fetch("/api/bookings").then((r) => (r.ok ? r.json() : [])),
       fetch("/api/admin/users").then((r) => (r.ok ? r.json() : [])),
       fetch("/api/instant-bookings").then((r) => (r.ok ? r.json() : { instantBookings: [] })),
+      fetch("/api/admin/categories").then((r) => (r.ok ? r.json() : [])),
     ])
-      .then(([proData, bookingData, userData, instantData]) => {
+      .then(([proData, bookingData, userData, instantData, categoryData]) => {
         setProfessionals(Array.isArray(proData) ? proData : []);
         setBookings(Array.isArray(bookingData) ? bookingData : []);
         setUsers(Array.isArray(userData) ? userData : []);
         setInstantBookingsList(Array.isArray(instantData?.instantBookings) ? instantData.instantBookings : []);
+        setCategoriesList(Array.isArray(categoryData) ? categoryData : []);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -423,6 +450,103 @@ export default function AdminDashboard() {
     }
   }
 
+  // Category Actions
+  async function handleCreateCategory(e: React.FormEvent) {
+    e.preventDefault();
+    setCreatingCategory(true);
+    setActionMessage("");
+    try {
+      const res = await fetch("/api/admin/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nameEn: newCatNameEn,
+          nameBn: newCatNameBn,
+          slug: newCatSlug || newCatNameEn.toLowerCase().replace(/[^a-z0-9]/g, "-"),
+          icon: newCatIcon,
+        }),
+      });
+      const data = await res.json();
+      setCreatingCategory(false);
+      if (!res.ok) {
+        setActionMessage(`Error: ${data.error || "Failed to create category"}`);
+        return;
+      }
+      setCategoriesList((prev) =>
+        [...prev, { ...data, proCount: 0 }].sort((a, b) => a.nameEn.localeCompare(b.nameEn))
+      );
+      setShowAddCategoryModal(false);
+      setNewCatNameEn("");
+      setNewCatNameBn("");
+      setNewCatSlug("");
+      setNewCatIcon("wrench");
+      setActionMessage("🎉 Service Category created successfully!");
+    } catch {
+      setCreatingCategory(false);
+      setActionMessage("Error creating category.");
+    }
+  }
+
+  function openEditCategoryModal(cat: AdminCategory) {
+    setEditingCategory(cat);
+    setEditCatNameEn(cat.nameEn);
+    setEditCatNameBn(cat.nameBn);
+    setEditCatSlug(cat.slug);
+    setEditCatIcon(cat.icon || "wrench");
+  }
+
+  async function handleSaveCategoryEdits(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingCategory) return;
+    setSavingCategory(true);
+    setActionMessage("");
+    try {
+      const res = await fetch(`/api/admin/categories/${editingCategory.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nameEn: editCatNameEn,
+          nameBn: editCatNameBn,
+          slug: editCatSlug,
+          icon: editCatIcon,
+        }),
+      });
+      const data = await res.json();
+      setSavingCategory(false);
+      if (!res.ok) {
+        setActionMessage(`Error: ${data.error || "Failed to update category"}`);
+        return;
+      }
+      setCategoriesList((prev) =>
+        prev
+          .map((c) => (c.id === editingCategory.id ? { ...c, ...data } : c))
+          .sort((a, b) => a.nameEn.localeCompare(b.nameEn))
+      );
+      setEditingCategory(null);
+      setActionMessage("Service Category updated successfully.");
+    } catch {
+      setSavingCategory(false);
+      setActionMessage("Error updating category.");
+    }
+  }
+
+  async function handleDeleteCategory(id: string, name: string) {
+    if (!confirm(`Are you sure you want to delete category "${name}"?`)) return;
+    setActionMessage("");
+    try {
+      const res = await fetch(`/api/admin/categories/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionMessage(`Error: ${data.error || "Failed to delete category"}`);
+        return;
+      }
+      setCategoriesList((prev) => prev.filter((c) => c.id !== id));
+      setActionMessage(`Category "${name}" removed.`);
+    } catch {
+      setActionMessage("Error deleting category.");
+    }
+  }
+
   if (status !== "authenticated" || loading) {
     return <div className="max-w-6xl mx-auto px-4 py-16 text-center text-sm font-semibold text-slate-700">Loading admin center...</div>;
   }
@@ -475,6 +599,10 @@ export default function AdminDashboard() {
 
   const displayedUsers = users.filter((u) =>
     `${u.name} ${u.email} ${u.phone || ""} ${u.role}`.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const displayedCategories = categoriesList.filter((c) =>
+    `${c.nameEn} ${c.nameBn} ${c.slug}`.toLowerCase().includes(search.toLowerCase())
   );
 
   // Unified Completed Tasks List with timeframe filtering
@@ -530,7 +658,7 @@ export default function AdminDashboard() {
           Admin Control Center
         </h1>
         <p className="text-xs text-slate-600 font-medium">
-          Full management: instant bookings, 1-click completion archives, verified technicians, and users.
+          Full management: instant bookings, categories, 1-click completion archives, verified technicians, and users.
         </p>
       </div>
 
@@ -542,7 +670,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Interactive Metric Cards: Clickable to Filter/Switch */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <button
           type="button"
           onClick={() => {
@@ -581,6 +709,23 @@ export default function AdminDashboard() {
           <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">✅ Done Tasks</p>
           <p className="font-display text-2xl font-black text-slate-900 mt-1">{totalDoneCount}</p>
           <span className="text-[10px] text-slate-500 font-semibold block mt-1">View Archive →</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setTab("categories");
+            setSearch("");
+          }}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+            tab === "categories"
+              ? "bg-purple-50/90 border-purple-300 ring-2 ring-purple-400"
+              : "bg-white border-slate-200 hover:border-purple-300"
+          }`}
+        >
+          <p className="text-xs font-bold text-purple-800 uppercase tracking-wide">📂 Categories</p>
+          <p className="font-display text-2xl font-black text-slate-900 mt-1">{categoriesList.length}</p>
+          <span className="text-[10px] text-slate-500 font-semibold block mt-1">Manage All →</span>
         </button>
 
         <button
@@ -678,6 +823,26 @@ export default function AdminDashboard() {
           <span>✅ Done Task List</span>
           <span className="bg-emerald-100 text-emerald-900 text-[10px] font-black px-2 py-0.5 rounded-full">
             {totalDoneCount}
+          </span>
+        </button>
+
+        <button
+          onClick={() => {
+            setTab("categories");
+            setShowPendingOnly(false);
+            setShowAvailableOnly(false);
+          }}
+          className={`flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+            tab === "categories"
+              ? "bg-purple-600 text-white shadow-xs"
+              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          <span>📂 Categories</span>
+          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+            tab === "categories" ? "bg-purple-800 text-white" : "bg-purple-100 text-purple-900"
+          }`}>
+            {categoriesList.length}
           </span>
         </button>
 
@@ -1242,6 +1407,85 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* TAB 6: SERVICE CATEGORIES */}
+      {tab === "categories" && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-purple-50/70 border border-purple-200/80 rounded-2xl">
+            <div>
+              <h2 className="font-display font-extrabold text-base text-purple-950">
+                Manage Service Categories
+              </h2>
+              <p className="text-xs text-purple-800 font-medium">
+                Add, edit, and organize all public service categories available on SohojService.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAddCategoryModal(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-extrabold px-4 py-2.5 rounded-xl shadow-sm transition-all hover:shadow hover:scale-[1.02] active:scale-95 cursor-pointer shrink-0 flex items-center gap-1.5"
+            >
+              <span>➕</span>
+              <span>Add New Category</span>
+            </button>
+          </div>
+
+          {displayedCategories.length === 0 ? (
+            <div className="p-8 text-center text-xs font-semibold text-slate-500 bg-white rounded-2xl border border-slate-200">
+              No categories matching your search.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {displayedCategories.map((cat) => (
+                <div
+                  key={cat.id}
+                  className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-lg">
+                        📂
+                      </div>
+                      <div>
+                        <h3 className="font-display font-bold text-sm text-slate-900">
+                          {cat.nameEn}
+                        </h3>
+                        <p className="text-xs font-semibold text-slate-500">{cat.nameBn}</p>
+                      </div>
+                    </div>
+
+                    <span className="text-[10px] font-bold text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md shrink-0">
+                      {cat.proCount ?? 0} Pros
+                    </span>
+                  </div>
+
+                  <div className="text-[11px] text-slate-400 font-mono flex items-center justify-between border-t border-slate-100 pt-2">
+                    <span>slug: <strong className="text-slate-600">{cat.slug}</strong></span>
+                    <span>icon: <strong className="text-slate-600">{cat.icon || "wrench"}</strong></span>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => openEditCategoryModal(cat)}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCategory(cat.id, cat.nameEn)}
+                      className="text-xs font-bold text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* MODAL 1: EDIT PROFESSIONAL PROFILE */}
       {selectedProfessional && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
@@ -1322,7 +1566,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-800 block mb-1">District / City</label>
+                  <label className="font-bold text-slate-800 block mb-1">City / District</label>
                   <input
                     value={editingProCity}
                     onChange={(e) => setEditingProCity(e.target.value)}
@@ -1333,7 +1577,7 @@ export default function AdminDashboard() {
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="font-bold text-slate-800 block mb-1">Years of Experience</label>
+                  <label className="font-bold text-slate-800 block mb-1">Experience (Years)</label>
                   <input
                     type="number"
                     value={editingProExp}
@@ -1343,7 +1587,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-800 block mb-1">Rate per Visit (৳)</label>
+                  <label className="font-bold text-slate-800 block mb-1">Visiting Rate (BDT)</label>
                   <input
                     type="number"
                     value={editingProRate}
@@ -1484,6 +1728,243 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: ADD NEW SERVICE CATEGORY */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 md:p-8 space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">📂</span>
+                <div>
+                  <h2 className="font-display font-extrabold text-xl text-slate-900">
+                    Add Service Category
+                  </h2>
+                  <p className="text-xs text-slate-500">Create a new local service category</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddCategoryModal(false)}
+                className="text-slate-400 hover:text-slate-700 text-lg font-bold p-1 rounded-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCategory} className="space-y-4 text-xs">
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">
+                  Category Name (English) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newCatNameEn}
+                  onChange={(e) => {
+                    setNewCatNameEn(e.target.value);
+                    if (!newCatSlug) {
+                      setNewCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "-"));
+                    }
+                  }}
+                  placeholder="e.g. Water Purifier & Filter"
+                  className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">
+                  Category Name (Bangla) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newCatNameBn}
+                  onChange={(e) => setNewCatNameBn(e.target.value)}
+                  placeholder="e.g. ওয়াটার ফিল্টার সার্ভিস"
+                  className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">
+                    URL Slug <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newCatSlug}
+                    onChange={(e) => setNewCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-"))}
+                    placeholder="water-filter"
+                    className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">Icon Theme</label>
+                  <select
+                    value={newCatIcon}
+                    onChange={(e) => setNewCatIcon(e.target.value)}
+                    className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none cursor-pointer"
+                  >
+                    <option value="wrench">🔧 Wrench / Repair</option>
+                    <option value="zap">⚡ Zap / Electric</option>
+                    <option value="droplet">💧 Droplet / Plumbing</option>
+                    <option value="wind">💨 Wind / AC Cooling</option>
+                    <option value="snowflake">❄️ Snowflake / Fridge</option>
+                    <option value="sparkles">✨ Sparkles / Cleaning</option>
+                    <option value="paintbrush">🖌️ Paintbrush / Painter</option>
+                    <option value="hammer">🔨 Hammer / Carpenter</option>
+                    <option value="smartphone">📱 Smartphone / Mobile</option>
+                    <option value="monitor">💻 Monitor / Computer</option>
+                    <option value="wifi">📶 WiFi / Internet</option>
+                    <option value="camera">📷 Camera / CCTV</option>
+                    <option value="book-open">📖 Book / Home Tutor</option>
+                    <option value="battery-charging">🔋 Battery / IPS Generator</option>
+                    <option value="sun">☀️ Sun / Solar</option>
+                    <option value="flame">🔥 Flame / Gas Stove</option>
+                    <option value="filter">🚰 Filter / Purifier</option>
+                    <option value="activity">⚙️ Motor / Pump</option>
+                    <option value="shield">🛡️ Shield / Pest Control</option>
+                    <option value="tool">🛠️ Tool / Welding</option>
+                    <option value="grid">🧱 Grid / Masonry Tiles</option>
+                    <option value="truck">🚚 Truck / Movers</option>
+                    <option value="tv">📺 TV / Electronics</option>
+                    <option value="scissors">✂️ Scissors / Beauty Salon</option>
+                    <option value="aperture">📸 Aperture / Photography</option>
+                    <option value="trash">🗑️ Trash / Septic Tank</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingCategory}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {creatingCategory ? "Creating..." : "➕ Create Category"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: EDIT SERVICE CATEGORY */}
+      {editingCategory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 md:p-8 space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">✏️</span>
+                <div>
+                  <h2 className="font-display font-extrabold text-xl text-slate-900">
+                    Edit Category
+                  </h2>
+                  <p className="text-xs text-slate-500">{editingCategory.nameEn}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingCategory(null)}
+                className="text-slate-400 hover:text-slate-700 text-lg font-bold p-1 rounded-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategoryEdits} className="space-y-4 text-xs">
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">
+                  Category Name (English)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editCatNameEn}
+                  onChange={(e) => setEditCatNameEn(e.target.value)}
+                  className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">
+                  Category Name (Bangla)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editCatNameBn}
+                  onChange={(e) => setEditCatNameBn(e.target.value)}
+                  className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">URL Slug</label>
+                  <input
+                    type="text"
+                    required
+                    value={editCatSlug}
+                    onChange={(e) => setEditCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-"))}
+                    className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">Icon</label>
+                  <input
+                    type="text"
+                    value={editCatIcon}
+                    onChange={(e) => setEditCatIcon(e.target.value)}
+                    className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = editingCategory.id;
+                    const name = editingCategory.nameEn;
+                    setEditingCategory(null);
+                    handleDeleteCategory(id, name);
+                  }}
+                  className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer"
+                >
+                  🗑️ Delete Category
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingCategory(null)}
+                    className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingCategory}
+                    className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {savingCategory ? "Saving..." : "💾 Save Changes"}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

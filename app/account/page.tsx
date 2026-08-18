@@ -182,25 +182,46 @@ export default function AccountPage() {
         </div>
 
         {/* Profile Avatar Card */}
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-5 rounded-2xl bg-slate-50 border border-slate-200/80">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80">
           <ProfilePhoto name={account.name} photoUrl={account.photoUrl} size="lg" />
-          <div className="text-center sm:text-left space-y-2">
+          <div className="text-center sm:text-left space-y-2 flex-1 min-w-0">
             <h2 className="font-display font-extrabold text-lg text-slate-900">{account.name}</h2>
-            <span className={`inline-block text-[11px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full ${
-              isAdmin ? "bg-purple-100 text-purple-950 border border-purple-200" : "bg-blue-100 text-blue-950 border border-blue-200"
-            }`}>
-              {account.role}
-            </span>
+            
+            <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
+              <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full ${
+                isAdmin
+                  ? "bg-purple-100 text-purple-950 border border-purple-200"
+                  : account.role === "PROFESSIONAL"
+                  ? "bg-emerald-100 text-emerald-950 border border-emerald-200"
+                  : "bg-blue-100 text-blue-950 border border-blue-200"
+              }`}>
+                <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+                <span>{account.role}</span>
+              </span>
+
+              {!isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setRoleModalOpen(true)}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-300/80 px-2.5 py-0.5 rounded-full transition-all cursor-pointer shadow-2xs active:scale-95"
+                  title="Switch between Customer and Professional mode"
+                >
+                  <span className="text-[10px]">🔄</span>
+                  <span>{account.role === "PROFESSIONAL" ? "Switch to Customer" : "Switch to Professional"}</span>
+                </button>
+              )}
+            </div>
+
             <div className="pt-1">
               <button
                 type="button"
                 onClick={() => fileInput.current?.click()}
                 disabled={saving}
-                className="border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-2xs active:scale-95 disabled:opacity-60 cursor-pointer"
+                className="border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shadow-2xs active:scale-95 disabled:opacity-60 cursor-pointer"
               >
                 {saving ? "Uploading..." : "Change photo"}
               </button>
-              <p className="text-[11px] text-slate-500 font-medium mt-1">JPG, PNG, or WebP up to 500 KB</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">JPG, PNG, or WebP up to 500 KB</p>
               <input
                 ref={fileInput}
                 type="file"
@@ -247,44 +268,6 @@ export default function AccountPage() {
             </span>
           </div>
         </div>
-
-        {/* ACCOUNT BRANCH & ROLE SWITCH SECTION (NON-ADMIN) */}
-        {!isAdmin && (
-          <div className="border-t border-slate-200 pt-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-display font-extrabold text-base text-slate-900 flex items-center gap-1.5">
-                  <span>🔄</span>
-                  <span>Account Branch & Role</span>
-                </h3>
-                <p className="text-xs text-slate-600 font-medium mt-0.5">
-                  Switch anytime between <strong>Customer</strong> (hiring services) and <strong>Professional</strong> (offering technical services).
-                </p>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-0.5">
-                <span className="text-xs font-bold text-indigo-950">
-                  Current Branch: <strong className="uppercase bg-white px-2 py-0.5 rounded-md border border-indigo-200">{account.role}</strong>
-                </span>
-                <p className="text-[11px] text-indigo-900">
-                  {account.role === "PROFESSIONAL"
-                    ? "You can switch to Customer mode to book emergency home services."
-                    : "You can switch to Professional mode to list your trade services."}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setRoleModalOpen(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
-              >
-                {account.role === "PROFESSIONAL" ? "Switch to Customer Mode" : "Switch to Professional Mode"}
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* PASSWORD RESET / CHANGE SECTION (EXCEPT ADMIN) */}
         <div className="border-t border-slate-200 pt-6 space-y-4">

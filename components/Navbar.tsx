@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { useLanguage } from "@/components/LanguageProvider";
 import BrandLogo from "@/components/BrandLogo";
-import RoleSwitchModal from "@/components/RoleSwitchModal";
 import { useState, useEffect } from "react";
 import { getStoredLiveLocation, detectLiveGpsLocation, LiveLocationState } from "@/lib/liveLocation";
 
@@ -13,7 +12,6 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useLanguage();
   const [open, setOpen] = useState(false);
-  const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [liveLocation, setLiveLocation] = useState<LiveLocationState | null>(null);
   const [locatingGps, setLocatingGps] = useState(false);
   const router = useRouter();
@@ -158,41 +156,17 @@ export default function Navbar() {
                 {t("myAccount")}
               </Link>
 
-              {/* Role Switcher & Indicator */}
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-2xl p-1 shadow-2xs">
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-bold text-slate-800">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {/* Minimal User Role & Logout */}
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 rounded-full pl-2.5 pr-1.5 py-1 text-xs">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   <span>{roleLabel(user.role)}</span>
                 </span>
-
-                {user.role !== "ADMIN" && (
-                  <button
-                    type="button"
-                    onClick={() => setRoleModalOpen(true)}
-                    className="inline-flex items-center gap-1 text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-xl transition-all cursor-pointer active:scale-95"
-                    title={
-                      user.role === "CUSTOMER"
-                        ? "Switch to Professional Account"
-                        : "Switch to Customer Account"
-                    }
-                  >
-                    <span>🔄</span>
-                    <span>
-                      {user.role === "CUSTOMER"
-                        ? lang === "bn"
-                          ? "প্রো মোড"
-                          : "Switch to Pro"
-                        : lang === "bn"
-                        ? "কাস্টমার মোড"
-                        : "Switch to User"}
-                    </span>
-                  </button>
-                )}
 
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="text-[10px] font-bold text-red-500 hover:text-red-700 hover:underline transition-colors px-1.5 py-0.5 cursor-pointer"
+                  className="text-[11px] font-semibold text-slate-400 hover:text-red-600 transition-colors px-1.5 py-0.5 cursor-pointer border-l border-slate-200"
                   title="Log out"
                 >
                   {t("logout")}
@@ -317,35 +291,9 @@ export default function Navbar() {
               >
                 {t("myAccount")}
               </Link>
-
-              {user.role !== "ADMIN" && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    setRoleModalOpen(true);
-                  }}
-                  className="flex items-center justify-between p-3 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-xl font-bold text-xs cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <span>🔄</span>
-                    <span>
-                      {user.role === "CUSTOMER"
-                        ? lang === "bn"
-                          ? "প্রফেশনাল অ্যাকাউন্টে স্যুইচ করুন"
-                          : "Switch to Professional Account"
-                        : lang === "bn"
-                        ? "কাস্টমার অ্যাকাউন্টে স্যুইচ করুন"
-                        : "Switch to Customer Account"}
-                    </span>
-                  </span>
-                  <span>→</span>
-                </button>
-              )}
-
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200 mt-1">
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200 mt-1">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   <span>{roleLabel(user.role)}</span>
                 </span>
                 <button
@@ -354,7 +302,7 @@ export default function Navbar() {
                     setOpen(false);
                     handleLogout();
                   }}
-                  className="text-xs font-bold text-red-600 hover:underline px-2 py-0.5 cursor-pointer"
+                  className="text-xs font-semibold text-slate-500 hover:text-red-600 transition-colors px-2 py-0.5 cursor-pointer"
                 >
                   {t("logout")}
                 </button>
@@ -389,9 +337,6 @@ export default function Navbar() {
           )}
         </div>
       )}
-
-      {/* Role Switcher Modal */}
-      <RoleSwitchModal isOpen={roleModalOpen} onClose={() => setRoleModalOpen(false)} />
     </header>
   );
 }

@@ -25,7 +25,7 @@ export default function RoleSwitchModal({ isOpen, onClose, targetRole }: Props) 
   const { lang } = useLanguage();
   const router = useRouter();
 
-  // If user is CUSTOMER, default destination is PROFESSIONAL and vice versa
+  // If user is CUSTOMER, destination is PROFESSIONAL and vice versa
   const destinationRole = targetRole || (user?.role === "PROFESSIONAL" ? "CUSTOMER" : "PROFESSIONAL");
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -108,7 +108,7 @@ export default function RoleSwitchModal({ isOpen, onClose, targetRole }: Props) 
 
       if (destinationRole === "PROFESSIONAL") {
         if (!selectedCategoryId) {
-          setError(lang === "bn" ? "দয়া করে সার্ভিস ক্যাটাগরি নির্বাচন করুন।" : "Please select your service trade category.");
+          setError(lang === "bn" ? "দয়া করে সার্ভিস ক্যাটাগরি নির্বাচন করুন।" : "Please select your trade category.");
           setSaving(false);
           return;
         }
@@ -136,13 +136,12 @@ export default function RoleSwitchModal({ isOpen, onClose, targetRole }: Props) 
       setSaving(false);
 
       if (!res.ok) {
-        setError(data.error || "Failed to switch role. Please try again.");
+        setError(data.error || "Failed to switch mode. Please try again.");
         return;
       }
 
       onClose();
 
-      // Redirect to target dashboard
       if (destinationRole === "PROFESSIONAL") {
         router.push("/dashboard/professional?welcome=true");
       } else {
@@ -156,74 +155,60 @@ export default function RoleSwitchModal({ isOpen, onClose, targetRole }: Props) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs motion-enter">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 p-5 sm:p-6 flex flex-col max-h-[92vh] overflow-hidden">
-        {/* Header */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
+      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-5 flex flex-col max-h-[90vh] overflow-hidden">
+        {/* Minimal Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <span className="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-800 flex items-center justify-center text-xl font-bold">
-              🔄
-            </span>
-            <div>
-              <h2 className="font-display font-extrabold text-base sm:text-lg text-slate-900 leading-tight">
-                {destinationRole === "PROFESSIONAL"
-                  ? lang === "bn"
-                    ? "প্রফেশনাল মোডে স্যুইচ করুন"
-                    : "Switch to Professional Mode"
-                  : lang === "bn"
-                  ? "কাস্টমার মোডে স্যুইচ করুন"
-                  : "Switch to Customer Mode"}
-              </h2>
-              <p className="text-xs text-slate-500 font-medium">
-                {destinationRole === "PROFESSIONAL"
-                  ? lang === "bn"
-                    ? "আপনার কাজের তথ্য যোগ করে টেকনিশিয়ান হিসেবে সেবা দিন"
-                    : "Offer your trade services & manage bookings"
-                  : lang === "bn"
-                  ? "সেবা গ্রহণ এবং বুকিং করতে কাস্টমার অ্যাকাউন্টে যান"
-                  : "Book services and hire local verified technicians"}
-              </p>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-base">🔄</span>
+            <h2 className="font-display font-bold text-sm sm:text-base text-slate-900">
+              {destinationRole === "PROFESSIONAL"
+                ? lang === "bn"
+                  ? "প্রফেশনাল মোড"
+                  : "Switch to Professional"
+                : lang === "bn"
+                ? "কাস্টমার মোড"
+                : "Switch to Customer"}
+            </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 text-lg font-bold p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+            className="text-slate-400 hover:text-slate-700 text-sm font-bold p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
           >
             ✕
           </button>
         </div>
 
-        {/* Form Body */}
-        <div className="overflow-y-auto py-3 space-y-4 flex-1 pr-1 text-xs">
+        {/* Minimal Form Body */}
+        <div className="overflow-y-auto py-3 space-y-3 flex-1 pr-1 text-xs">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 font-bold rounded-xl flex items-center gap-2">
-              <span>⚠️</span>
-              <span>{error}</span>
+            <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 font-semibold rounded-lg text-xs">
+              {error}
             </div>
           )}
 
           {loading ? (
-            <div className="p-8 text-center text-slate-500 font-medium">
-              {lang === "bn" ? "প্রোফাইল লোড হচ্ছে..." : "Loading account details..."}
+            <div className="p-6 text-center text-slate-500 font-medium">
+              {lang === "bn" ? "তথ্য লোড হচ্ছে..." : "Loading..."}
             </div>
           ) : (
-            <form id="role-switch-form" onSubmit={handleSwitch} className="space-y-4">
+            <form id="role-switch-form" onSubmit={handleSwitch} className="space-y-3">
               {destinationRole === "PROFESSIONAL" ? (
                 <>
                   {/* Category Selection */}
                   <div>
-                    <label className="font-bold text-slate-800 block mb-1">
-                      {lang === "bn" ? "আপনার সার্ভিস ক্যাটাগরি / পেশা *" : "Service Category / Trade *"}
+                    <label className="font-semibold text-slate-700 block mb-1">
+                      {lang === "bn" ? "ক্যাটাগরি *" : "Service Category *"}
                     </label>
                     <select
                       required
                       value={selectedCategoryId}
                       onChange={(e) => setSelectedCategoryId(e.target.value)}
-                      className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:border-indigo-600 focus:outline-none cursor-pointer"
+                      className="w-full border border-slate-200 bg-white rounded-lg p-2 text-xs font-medium text-slate-900 focus:border-indigo-600 focus:outline-none cursor-pointer"
                     >
                       {categories.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {lang === "bn" ? c.nameBn : c.nameEn} ({c.nameEn})
+                          {lang === "bn" ? c.nameBn : c.nameEn}
                         </option>
                       ))}
                     </select>
@@ -231,8 +216,8 @@ export default function RoleSwitchModal({ isOpen, onClose, targetRole }: Props) 
 
                   {/* Primary Service Upazila */}
                   <div>
-                    <label className="font-bold text-slate-800 block mb-1">
-                      {lang === "bn" ? "প্রধান সেবা প্রদানের এলাকা (উপজেলা) *" : "Primary Service Area (Upazila) *"}
+                    <label className="font-semibold text-slate-700 block mb-1">
+                      {lang === "bn" ? "সার্ভিস এলাকা (উপজেলা) *" : "Service Area (Upazila) *"}
                     </label>
                     <BangladeshUpazilaInput
                       value={area}
@@ -250,15 +235,15 @@ export default function RoleSwitchModal({ isOpen, onClose, targetRole }: Props) 
                           setLongitude(loc.lng);
                         }
                       }}
-                      className="w-full border border-slate-300 bg-white rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:border-indigo-600 focus:outline-none"
+                      className="w-full border border-slate-200 bg-white rounded-lg px-3 py-2 text-xs text-slate-900 focus:border-indigo-600 focus:outline-none"
                     />
                   </div>
 
                   {/* Visiting Fee & Experience Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="font-bold text-slate-800 block mb-1">
-                        {lang === "bn" ? "ভিজিটিং চার্জ (৳ টাকা) *" : "Visiting Rate (BDT ৳) *"}
+                      <label className="font-semibold text-slate-700 block mb-1">
+                        {lang === "bn" ? "ভিজিট ফি (৳) *" : "Visiting Fee (৳) *"}
                       </label>
                       <input
                         type="number"
@@ -266,13 +251,13 @@ export default function RoleSwitchModal({ isOpen, onClose, targetRole }: Props) 
                         value={ratePerVisit}
                         onChange={(e) => setRatePerVisit(e.target.value === "" ? "" : Number(e.target.value))}
                         placeholder="300"
-                        className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:border-indigo-600 focus:outline-none"
+                        className="w-full border border-slate-200 bg-white rounded-lg p-2 text-xs font-medium text-slate-900 focus:border-indigo-600 focus:outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="font-bold text-slate-800 block mb-1">
-                        {lang === "bn" ? "অভিজ্ঞতা (বছর) *" : "Experience (Years) *"}
+                      <label className="font-semibold text-slate-700 block mb-1">
+                        {lang === "bn" ? "অভিজ্ঞতা (বছর) *" : "Experience (Yrs) *"}
                       </label>
                       <input
                         type="number"
@@ -280,76 +265,63 @@ export default function RoleSwitchModal({ isOpen, onClose, targetRole }: Props) 
                         value={yearsExperience}
                         onChange={(e) => setYearsExperience(e.target.value === "" ? "" : Number(e.target.value))}
                         placeholder="2"
-                        className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:border-indigo-600 focus:outline-none"
+                        className="w-full border border-slate-200 bg-white rounded-lg p-2 text-xs font-medium text-slate-900 focus:border-indigo-600 focus:outline-none"
                       />
                     </div>
                   </div>
 
                   {/* Contact Mobile Phone */}
                   <div>
-                    <label className="font-bold text-slate-800 block mb-1">
-                      {lang === "bn" ? "মোবাইল নম্বর (বুকিং গ্রহণের জন্য)" : "Contact Mobile Phone"}
+                    <label className="font-semibold text-slate-700 block mb-1">
+                      {lang === "bn" ? "ফোন নম্বর" : "Contact Phone"}
                     </label>
                     <input
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="017XXXXXXXX"
-                      className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900 focus:border-indigo-600 focus:outline-none"
+                      className="w-full border border-slate-200 bg-white rounded-lg p-2 text-xs text-slate-900 focus:border-indigo-600 focus:outline-none"
                     />
                   </div>
 
                   {/* Bio */}
                   <div>
-                    <label className="font-bold text-slate-800 block mb-1">
-                      {lang === "bn" ? "সংক্ষিপ্ত বিবরণ / পরিচিতি" : "Professional Bio / Skills"}
+                    <label className="font-semibold text-slate-700 block mb-1">
+                      {lang === "bn" ? "বিবরণ" : "Bio / Notes"}
                     </label>
                     <textarea
                       rows={2}
                       value={bio}
                       onChange={(e) => setBio(e.target.value)}
-                      placeholder={
-                        lang === "bn"
-                          ? "আপনার কাজের অভিজ্ঞতা এবং দক্ষতা সংক্ষেপে লিখুন..."
-                          : "Brief summary of your technician background and expertise..."
-                      }
-                      className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900 focus:border-indigo-600 focus:outline-none"
+                      placeholder={lang === "bn" ? "আপনার কাজের অভিজ্ঞতা..." : "Brief summary of skills..."}
+                      className="w-full border border-slate-200 bg-white rounded-lg p-2 text-xs text-slate-900 focus:border-indigo-600 focus:outline-none"
                     />
                   </div>
                 </>
               ) : (
-                <div className="p-5 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">🙋</span>
-                    <div>
-                      <h3 className="font-bold text-sm text-blue-950">
-                        {lang === "bn" ? "কাস্টমার মোডে পরিবর্তন করুন" : "Switch to Customer Mode"}
-                      </h3>
-                      <p className="text-xs text-blue-800">
-                        {lang === "bn"
-                          ? "আপনি যখন খুশি আবার প্রফেশনাল মোডে ফিরে আসতে পারবেন। আপনার পূর্বের কাজের তথ্য সংরক্ষিত থাকবে।"
-                          : "You can return to Professional mode anytime without losing your technician profile or history."}
-                      </p>
-                    </div>
-                  </div>
-
-                  <ul className="space-y-1.5 text-xs text-blue-900 font-medium pl-6 list-disc">
-                    <li>{lang === "bn" ? "ইনস্ট্যান্ট ও শিডিউল বুকিং করুন" : "Request Instant & Scheduled emergency bookings"}</li>
-                    <li>{lang === "bn" ? "কাজের রেটিং ও রিভিউ দিন" : "Submit ratings and feedback for technicians"}</li>
-                    <li>{lang === "bn" ? "বুকিং হিস্টোরি ট্র্যাক করুন" : "Manage and track personal service requests"}</li>
-                  </ul>
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
+                  <p className="font-semibold text-slate-800">
+                    {lang === "bn"
+                      ? "কাস্টমার মোডে স্যুইচ করুন।"
+                      : "Switch to Customer Mode."}
+                  </p>
+                  <p className="text-slate-600 leading-relaxed text-[11px]">
+                    {lang === "bn"
+                      ? "আপনি টেকনিশিয়ানদের বুকিং এবং রিভিউ দিতে পারবেন। আপনার প্রফেশনাল তথ্য সংরক্ষিত থাকবে।"
+                      : "You can book home services, manage orders, and submit reviews. Your technician listing will remain saved."}
+                  </p>
                 </div>
               )}
             </form>
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 shrink-0">
+        {/* Minimal Footer Actions */}
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+            className="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
           >
             {lang === "bn" ? "বাতিল" : "Cancel"}
           </button>
@@ -358,15 +330,13 @@ export default function RoleSwitchModal({ isOpen, onClose, targetRole }: Props) 
             type="submit"
             form="role-switch-form"
             disabled={saving || loading}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+            className="bg-slate-900 hover:bg-black text-white font-semibold text-xs px-4 py-1.5 rounded-lg shadow-xs active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
           >
-            {saving ? (
-              <span>⏳ {lang === "bn" ? "স্যুইচ হচ্ছে..." : "Switching..."}</span>
-            ) : destinationRole === "PROFESSIONAL" ? (
-              <span>🚀 {lang === "bn" ? "প্রফেশনাল মোডে যান" : "Launch Pro Mode"}</span>
-            ) : (
-              <span>✓ {lang === "bn" ? "কাস্টমার মোডে যান" : "Switch to Customer"}</span>
-            )}
+            {saving
+              ? lang === "bn" ? "স্যুইচ হচ্ছে..." : "Switching..."
+              : destinationRole === "PROFESSIONAL"
+              ? lang === "bn" ? "প্রো মোডে যান" : "Switch to Pro"
+              : lang === "bn" ? "কাস্টমার মোডে যান" : "Switch to Customer"}
           </button>
         </div>
       </div>

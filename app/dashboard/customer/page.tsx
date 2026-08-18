@@ -97,22 +97,12 @@ export default function CustomerDashboard() {
             Track your service requests, booking statuses, and reviews
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setRoleModalOpen(true)}
-            className="bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1.5"
-          >
-            <span>💼</span>
-            <span>Become a Pro / Switch</span>
-          </button>
-          <Link
-            href="/browse"
-            className="bg-[var(--color-teal)] hover:bg-[var(--color-teal-dark)] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95 w-fit"
-          >
-            + Request New Service
-          </Link>
-        </div>
+        <Link
+          href="/browse"
+          className="bg-[var(--color-teal)] hover:bg-[var(--color-teal-dark)] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95 w-fit"
+        >
+          + Request New Service
+        </Link>
       </div>
 
       {/* Become a Professional Banner */}

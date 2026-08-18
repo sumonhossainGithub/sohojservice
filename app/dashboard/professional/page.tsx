@@ -166,7 +166,7 @@ function ProfessionalDashboardContent() {
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-blue-100 leading-relaxed max-w-2xl">
-            You are signed in with Google as a **Service Professional**. Please choose your service category, primary upazila, and experience below. Once saved, customers in your area can book you directly!
+            You are signed in with Google as a **Service Professional**. Please choose your service category, primary upazila, and experience below. Once saved, clients in your area can book you directly!
           </p>
         </div>
       )}
@@ -188,7 +188,7 @@ function ProfessionalDashboardContent() {
             className="bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-xs font-bold px-3.5 py-1.5 rounded-xl transition-all cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1.5"
           >
             <span>🔄</span>
-            <span>Switch to Customer Mode</span>
+            <span>Switch to Client Mode</span>
           </button>
 
           {profile && (
@@ -210,7 +210,7 @@ function ProfessionalDashboardContent() {
         <div>
           <h2 className="font-display font-bold text-lg text-slate-900">Service Profile & Rates</h2>
           <p className="text-xs text-slate-500">
-            Keep this accurate so local customers in your upazila can contact and book you directly.
+            Keep this accurate so local clients in your upazila can contact and book you directly.
           </p>
         </div>
 

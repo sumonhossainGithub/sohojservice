@@ -296,7 +296,7 @@ function RegisterForm() {
             >
               <span className="text-xl mb-1">🛠️</span>
               <span className="text-xs sm:text-sm font-extrabold">I Offer a Service</span>
-              <span className="text-[10px] text-slate-400 font-normal">Get daily customer jobs</span>
+              <span className="text-[10px] text-slate-400 font-normal">Get daily client jobs</span>
             </button>
           </div>
 

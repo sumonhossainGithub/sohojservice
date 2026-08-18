@@ -92,7 +92,7 @@ export default function ProfessionalPage({
       return;
     }
     if (user.role !== "CUSTOMER") {
-      setErrorMsg("Only customer accounts can request direct bookings.");
+      setErrorMsg("Only client accounts can request direct bookings. You can switch to Client in My Account.");
       return;
     }
 

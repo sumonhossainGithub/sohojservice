@@ -136,7 +136,7 @@ function LoginForm() {
               type="button"
               disabled={googleLoading || loading}
               onClick={handleGoogleLogin}
-              className="w-full bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm py-3.5 px-4 rounded-2xl border-2 border-slate-200 hover:border-slate-300 transition-all shadow-sm hover:shadow active:scale-[0.99] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-3"
+              className="w-full bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm py-3 px-4 rounded-full border border-slate-300 hover:border-slate-400 transition-all shadow-xs hover:shadow active:scale-[0.99] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-3"
             >
               {googleLoading ? (
                 <span className="inline-flex items-center gap-2 text-slate-600">
@@ -246,7 +246,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading || googleLoading}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm py-3 px-4 rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+              className="w-full bg-slate-900 hover:bg-black text-white font-bold text-xs sm:text-sm py-3 px-4 rounded-full transition-all shadow-xs active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             >
               {loading ? "Signing in..." : "Sign In with Password"}
             </button>

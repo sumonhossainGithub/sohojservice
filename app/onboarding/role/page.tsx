@@ -164,7 +164,7 @@ function RoleSelectionContent() {
               </div>
               <div>
                 <span className="text-[11px] font-extrabold text-blue-600 uppercase tracking-wider bg-blue-100/70 px-2.5 py-0.5 rounded-full">
-                  Customer · সেবা গ্রহীতা
+                  Client · সেবা গ্রহীতা
                 </span>
                 <h3 className="font-display font-extrabold text-lg sm:text-xl text-slate-900 mt-1.5">
                   I Need a Service
@@ -196,7 +196,7 @@ function RoleSelectionContent() {
               }}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs py-3 px-4 rounded-2xl transition-all shadow-md shadow-blue-500/20 active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
             >
-              <span>{loading && selectedRole === "CUSTOMER" ? "Setting up..." : "Join as Customer →"}</span>
+              <span>{loading && selectedRole === "CUSTOMER" ? "Setting up..." : "Join as Client →"}</span>
             </button>
           </div>
 

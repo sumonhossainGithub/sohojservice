@@ -196,7 +196,7 @@ export default function AccountPage() {
                   : "bg-blue-100 text-blue-950 border border-blue-200"
               }`}>
                 <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
-                <span>{account.role}</span>
+                <span>{account.role === "CUSTOMER" ? "CLIENT" : account.role}</span>
               </span>
 
               {!isAdmin && (
@@ -204,10 +204,10 @@ export default function AccountPage() {
                   type="button"
                   onClick={() => setRoleModalOpen(true)}
                   className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-300/80 px-2.5 py-0.5 rounded-full transition-all cursor-pointer shadow-2xs active:scale-95"
-                  title="Switch between Customer and Professional mode"
+                  title="Switch between Client and Professional mode"
                 >
                   <span className="text-[10px]">🔄</span>
-                  <span>{account.role === "PROFESSIONAL" ? "Switch to Customer" : "Switch to Professional"}</span>
+                  <span>{account.role === "PROFESSIONAL" ? "Switch to Client" : "Switch to Professional"}</span>
                 </button>
               )}
             </div>

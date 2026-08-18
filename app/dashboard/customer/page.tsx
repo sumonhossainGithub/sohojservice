@@ -116,7 +116,7 @@ export default function CustomerDashboard() {
               Are you a skilled technician or service provider?
             </h2>
             <p className="text-xs text-indigo-900/80 font-medium">
-              List your electrical, plumbing, AC or repair services and get direct customer jobs across your upazila.
+              List your electrical, plumbing, AC or repair services and get direct client jobs across your upazila.
             </p>
           </div>
         </div>

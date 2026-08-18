@@ -184,14 +184,14 @@ export default function Navbar() {
 
               <Link
                 href="/login"
-                className="text-[var(--color-ink)]/80 hover:text-[var(--color-teal)] transition-colors text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-slate-100"
+                className="bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 shadow-2xs hover:shadow-xs transition-all text-xs font-bold px-4 py-1.5 rounded-full hover:border-slate-400 active:scale-95 cursor-pointer"
               >
                 {t("login")}
               </Link>
 
               <Link
                 href="/register"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs hover:shadow-md active:scale-95"
+                className="bg-slate-900 hover:bg-black text-white text-xs font-bold px-4 py-1.5 rounded-full transition-all shadow-xs hover:shadow-md active:scale-95 cursor-pointer"
               >
                 {t("register")}
               </Link>
@@ -321,14 +321,14 @@ export default function Navbar() {
                 <Link
                   href="/login"
                   onClick={() => setOpen(false)}
-                  className="text-center py-2 px-3 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50"
+                  className="text-center py-2 px-3 rounded-full bg-white border border-slate-300 text-slate-800 font-bold text-xs hover:bg-slate-50 shadow-2xs active:scale-95"
                 >
                   {t("login")}
                 </Link>
                 <Link
                   href="/register"
                   onClick={() => setOpen(false)}
-                  className="text-center py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs"
+                  className="text-center py-2 px-3 rounded-full bg-slate-900 hover:bg-black text-white font-bold text-xs shadow-xs active:scale-95"
                 >
                   {t("register")}
                 </Link>

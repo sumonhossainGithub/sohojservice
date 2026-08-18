@@ -227,7 +227,7 @@ export default function HomeHero() {
                   <span>★★★★★</span>
                   <span className="text-slate-900 font-extrabold">5.0</span>
                 </div>
-                <p className="text-[11px] text-slate-600 font-medium">Trusted Customer Ratings</p>
+                <p className="text-[11px] text-slate-600 font-medium">Trusted Client Ratings</p>
               </div>
             </div>
           </div>

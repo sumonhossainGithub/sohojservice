@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user || user.role !== "CUSTOMER") {
     return NextResponse.json(
-      { error: "Please log in as a customer to book." },
+      { error: "Please log in as a client to book." },
       { status: 401 }
     );
   }

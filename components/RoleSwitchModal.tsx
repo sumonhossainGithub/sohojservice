@@ -167,8 +167,8 @@ export default function RoleSwitchModal({ isOpen, onClose, targetRole }: Props) 
                   ? "প্রফেশনাল মোড"
                   : "Switch to Professional"
                 : lang === "bn"
-                ? "কাস্টমার মোড"
-                : "Switch to Customer"}
+                ? "ক্লায়েন্ট মোড"
+                : "Switch to Client"}
             </h2>
           </div>
           <button
@@ -302,12 +302,12 @@ export default function RoleSwitchModal({ isOpen, onClose, targetRole }: Props) 
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
                   <p className="font-semibold text-slate-800">
                     {lang === "bn"
-                      ? "কাস্টমার মোডে স্যুইচ করুন।"
-                      : "Switch to Customer Mode."}
+                      ? "ক্লায়েন্ট মোডে স্যুইচ করুন।"
+                      : "Switch to Client Mode."}
                   </p>
                   <p className="text-slate-600 leading-relaxed text-[11px]">
                     {lang === "bn"
-                      ? "আপনি টেকনিশিয়ানদের বুকিং এবং রিভিউ দিতে পারবেন। আপনার প্রফেশনাল তথ্য সংরক্ষিত থাকবে।"
+                      ? "আপনি টেকনিশিয়ানদের সরাসরি বুকিং এবং কাজের রিভিউ দিতে পারবেন। আপনার প্রফেশনাল তথ্য সংরক্ষিত থাকবে।"
                       : "You can book home services, manage orders, and submit reviews. Your technician listing will remain saved."}
                   </p>
                 </div>
@@ -336,7 +336,7 @@ export default function RoleSwitchModal({ isOpen, onClose, targetRole }: Props) 
               ? lang === "bn" ? "স্যুইচ হচ্ছে..." : "Switching..."
               : destinationRole === "PROFESSIONAL"
               ? lang === "bn" ? "প্রো মোডে যান" : "Switch to Pro"
-              : lang === "bn" ? "কাস্টমার মোডে যান" : "Switch to Customer"}
+              : lang === "bn" ? "ক্লায়েন্ট মোডে যান" : "Switch to Client"}
           </button>
         </div>
       </div>

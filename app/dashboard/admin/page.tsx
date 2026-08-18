@@ -1047,14 +1047,13 @@ export default function AdminDashboard() {
       setActionMessage("Error saving settings.");
     }
   }
-
-  // CSV Exporters
+    // CSV Exporters
   function handleExportInstantCSV() {
     const headers = [
       "Booking ID",
       "Date",
-      "Customer Name",
-      "Customer Phone",
+      "Client Name",
+      "Client Phone",
       "Service Category",
       "Problem Description",
       "Area",
@@ -1222,7 +1221,7 @@ export default function AdminDashboard() {
             </span>
           </div>
           <p className="text-xs text-slate-300 font-medium">
-            Welcome back, <strong>{user?.name}</strong>. Manage dispatches, technicians, customers, system settings & data.
+            Welcome back, <strong>{user?.name}</strong>. Manage dispatches, technicians, clients, system settings & data.
           </p>
         </div>
 
@@ -1737,7 +1736,7 @@ export default function AdminDashboard() {
             <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
               <span className="text-3xl block">⚡</span>
               <p className="text-sm font-bold text-slate-800">No instant bookings found.</p>
-              <p className="text-xs text-slate-500">All customer emergency requests are fulfilled.</p>
+              <p className="text-xs text-slate-500">All client emergency requests are fulfilled.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -1801,10 +1800,10 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* Customer & Location Grid */}
+                    {/* Client & Location Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                       <div>
-                        <span className="text-slate-400 font-semibold block text-[10px] uppercase">Customer</span>
+                        <span className="text-slate-400 font-semibold block text-[10px] uppercase">Client</span>
                         <p className="font-bold text-slate-900 text-sm">{booking.customerName}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <a
@@ -1907,14 +1906,14 @@ export default function AdminDashboard() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-display font-extrabold text-base text-yellow-950">
-                  Customer Ratings & Reviews ({displayedReviews.length})
+                  Client Ratings & Reviews ({displayedReviews.length})
                 </h2>
                 <span className="text-[10px] font-bold bg-yellow-200 text-yellow-950 px-2 py-0.5 rounded-full">
                   Avg: {reviewsStats.avgRating} ★
                 </span>
               </div>
               <p className="text-xs text-yellow-900 font-medium mt-0.5">
-                Moderate, inspect, and manage verified ratings and comments submitted by customers.
+                Moderate, inspect, and manage verified ratings and comments submitted by clients.
               </p>
             </div>
 
@@ -2352,7 +2351,7 @@ export default function AdminDashboard() {
                 Registered Users Directory ({displayedUsers.length})
               </h2>
               <p className="text-xs text-purple-800 font-medium mt-0.5">
-                Manage user permissions, roles (Customer, Professional, Admin), and contact credentials.
+                Manage user permissions, roles (Client, Professional, Admin), and contact credentials.
               </p>
             </div>
             <button
@@ -2391,7 +2390,7 @@ export default function AdminDashboard() {
                         : "bg-blue-100 text-blue-900"
                     }`}
                   >
-                    {u.role}
+                    {u.role === "CUSTOMER" ? "CLIENT" : u.role}
                   </span>
                   <button type="button" className="text-blue-600 font-bold text-[11px] hover:underline">
                     Edit User →
@@ -2413,7 +2412,7 @@ export default function AdminDashboard() {
               Completed Tasks Archive ({allDoneTasks.length})
             </h2>
             <p className="text-xs text-emerald-800 font-medium mt-0.5">
-              Historical ledger of all resolved emergency and scheduled customer jobs.
+              Historical ledger of all resolved emergency and scheduled client jobs.
             </p>
           </div>
 
@@ -2849,7 +2848,7 @@ export default function AdminDashboard() {
                   onChange={(e) => setEditingUserRole(e.target.value as any)}
                   className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs font-bold text-slate-900 cursor-pointer"
                 >
-                  <option value="CUSTOMER">CUSTOMER (Can book services & submit reviews)</option>
+                  <option value="CUSTOMER">CLIENT (Can book services & submit reviews)</option>
                   <option value="PROFESSIONAL">PROFESSIONAL (Can offer services & list profile)</option>
                   <option value="ADMIN">ADMIN (Full control center access)</option>
                 </select>

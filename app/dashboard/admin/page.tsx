@@ -133,6 +133,75 @@ function isDateThisYear(dateStr: string) {
   return d.getFullYear() === now.getFullYear();
 }
 
+const ICON_THEMES = [
+  { id: "wrench", emoji: "🔧", label: "Mechanic / Repair" },
+  { id: "zap", emoji: "⚡", label: "Electrician / Wiring" },
+  { id: "droplet", emoji: "💧", label: "Plumber / Water" },
+  { id: "wind", emoji: "💨", label: "AC Cooling / Air" },
+  { id: "snowflake", emoji: "❄️", label: "Fridge / Freeze" },
+  { id: "sparkles", emoji: "✨", label: "Deep Cleaning" },
+  { id: "paintbrush", emoji: "🖌️", label: "House Painter" },
+  { id: "hammer", emoji: "🔨", label: "Carpenter / Wood" },
+  { id: "smartphone", emoji: "📱", label: "Mobile Repair" },
+  { id: "monitor", emoji: "💻", label: "Computer / IT" },
+  { id: "wifi", emoji: "📶", label: "WiFi / Internet" },
+  { id: "camera", emoji: "📷", label: "CCTV / Security" },
+  { id: "book-open", emoji: "📖", label: "Home Tutor" },
+  { id: "battery-charging", emoji: "🔋", label: "IPS / Battery" },
+  { id: "sun", emoji: "☀️", label: "Solar Energy" },
+  { id: "flame", emoji: "🔥", label: "Gas Stove" },
+  { id: "filter", emoji: "🚰", label: "Water Purifier" },
+  { id: "activity", emoji: "⚙️", label: "Motor & Pump" },
+  { id: "shield", emoji: "🛡️", label: "Pest Control" },
+  { id: "tool", emoji: "🛠️", label: "Welding / Metal" },
+  { id: "grid", emoji: "🧱", label: "Tiles & Masonry" },
+  { id: "truck", emoji: "🚚", label: "Shifting & Movers" },
+  { id: "tv", emoji: "📺", label: "TV & Electronics" },
+  { id: "scissors", emoji: "✂️", label: "Beauty & Salon" },
+  { id: "aperture", emoji: "📸", label: "Photography" },
+  { id: "trash", emoji: "🗑️", label: "Septic Cleaning" },
+  { id: "car", emoji: "🚗", label: "Car & Bike" },
+  { id: "home", emoji: "🏠", label: "Renovation" },
+  { id: "lock", emoji: "🔒", label: "Locksmith / Key" },
+  { id: "briefcase", emoji: "💼", label: "General Contractor" },
+];
+
+function getCategoryEmoji(icon?: string, slug?: string) {
+  const found = ICON_THEMES.find((t) => t.id === icon);
+  if (found) return found.emoji;
+
+  const bySlug: Record<string, string> = {
+    electrician: "⚡",
+    plumber: "💧",
+    "ac-repair": "💨",
+    refrigerator: "❄️",
+    cleaning: "✨",
+    painter: "🖌️",
+    carpenter: "🔨",
+    "mobile-repair": "📱",
+    computer: "💻",
+    "internet-tech": "📶",
+    cctv: "📷",
+    tutor: "📖",
+    ips: "🔋",
+    solar: "☀️",
+    "gas-stove": "🔥",
+    "water-purifier": "🚰",
+    "generator-motor": "⚙️",
+    "pest-control": "🛡️",
+    welder: "🛠️",
+    masonry: "🧱",
+    "movers-packers": "🚚",
+    electronics: "📺",
+    salon: "✂️",
+    photographer: "📸",
+    "septic-tank": "🗑️",
+  };
+
+  if (slug && bySlug[slug]) return bySlug[slug];
+  return "📂";
+}
+
 export default function AdminDashboard() {
   const { user, status } = useAuth();
   const router = useRouter();
@@ -724,25 +793,40 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10 space-y-6 motion-enter">
-      <div>
-        <h1 className="font-display text-3xl font-extrabold text-slate-900 mb-1">
-          Admin Control Center
-        </h1>
-        <p className="text-xs text-slate-600 font-medium">
-          Full management: instant bookings, categories, 1-click completion archives, verified technicians, and users.
-        </p>
+    <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-10 space-y-5 sm:space-y-6 motion-enter">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+        <div>
+          <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Admin Control Center
+          </h1>
+          <p className="text-xs text-slate-600 font-medium mt-0.5">
+            Full management: instant bookings, categories, 1-click completion archives, verified technicians, and users.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => {
+              setCreateCatError("");
+              setShowAddCategoryModal(true);
+            }}
+            className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+          >
+            <span>➕</span>
+            <span>Add Category</span>
+          </button>
+        </div>
       </div>
 
       {actionMessage && (
         <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs font-bold text-blue-950 flex items-center justify-between shadow-2xs">
-          <span>ℹ️ {actionMessage}</span>
-          <button onClick={() => setActionMessage("")} className="text-slate-400 hover:text-slate-700 cursor-pointer">✕</button>
+          <span className="break-words">ℹ️ {actionMessage}</span>
+          <button onClick={() => setActionMessage("")} className="text-slate-400 hover:text-slate-700 cursor-pointer ml-2 shrink-0">✕</button>
         </div>
       )}
 
       {/* Interactive Metric Cards: Clickable to Filter/Switch */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
         <button
           type="button"
           onClick={() => {
@@ -751,18 +835,18 @@ export default function AdminDashboard() {
             setShowPendingOnly(false);
             setShowAvailableOnly(false);
           }}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+          className={`p-3 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${
             tab === "instantBookings"
               ? "bg-amber-50/90 border-amber-300 ring-2 ring-amber-400"
               : "bg-white border-slate-200 hover:border-amber-300"
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">⚡ New Instant</p>
-            {newInstantCount > 0 && <span className="h-2 w-2 rounded-full bg-red-500 animate-ping" />}
+            <p className="text-[11px] sm:text-xs font-bold text-amber-800 uppercase tracking-wide truncate">⚡ Instant</p>
+            {newInstantCount > 0 && <span className="h-2 w-2 rounded-full bg-red-500 animate-ping shrink-0" />}
           </div>
-          <p className="font-display text-2xl font-black text-slate-900 mt-1">{newInstantCount}</p>
-          <span className="text-[10px] text-slate-500 font-semibold block mt-1">Dispatches →</span>
+          <p className="font-display text-xl sm:text-2xl font-black text-slate-900 mt-1">{newInstantCount}</p>
+          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Dispatches →</span>
         </button>
 
         <button
@@ -772,15 +856,15 @@ export default function AdminDashboard() {
             setTimeframe("ALL");
             setSearch("");
           }}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+          className={`p-3 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${
             tab === "completedTasks"
               ? "bg-emerald-50/90 border-emerald-300 ring-2 ring-emerald-400"
               : "bg-white border-slate-200 hover:border-emerald-300"
           }`}
         >
-          <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">✅ Done Tasks</p>
-          <p className="font-display text-2xl font-black text-slate-900 mt-1">{totalDoneCount}</p>
-          <span className="text-[10px] text-slate-500 font-semibold block mt-1">View Archive →</span>
+          <p className="text-[11px] sm:text-xs font-bold text-emerald-800 uppercase tracking-wide truncate">✅ Done Tasks</p>
+          <p className="font-display text-xl sm:text-2xl font-black text-slate-900 mt-1">{totalDoneCount}</p>
+          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Archive →</span>
         </button>
 
         <button
@@ -790,15 +874,15 @@ export default function AdminDashboard() {
             setSearch("");
             loadCategories();
           }}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+          className={`p-3 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${
             tab === "categories"
               ? "bg-purple-50/90 border-purple-300 ring-2 ring-purple-400"
               : "bg-white border-slate-200 hover:border-purple-300"
           }`}
         >
-          <p className="text-xs font-bold text-purple-800 uppercase tracking-wide">📂 Categories</p>
-          <p className="font-display text-2xl font-black text-slate-900 mt-1">{categoriesList.length}</p>
-          <span className="text-[10px] text-slate-500 font-semibold block mt-1">Manage All →</span>
+          <p className="text-[11px] sm:text-xs font-bold text-purple-800 uppercase tracking-wide truncate">📂 Categories</p>
+          <p className="font-display text-xl sm:text-2xl font-black text-slate-900 mt-1">{categoriesList.length}</p>
+          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Manage →</span>
         </button>
 
         <button
@@ -809,15 +893,15 @@ export default function AdminDashboard() {
             setShowAvailableOnly(false);
             setSearch("");
           }}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+          className={`p-3 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${
             tab === "professionals" && !showPendingOnly && !showAvailableOnly
               ? "bg-blue-50/90 border-blue-300 ring-2 ring-blue-400"
               : "bg-white border-slate-200 hover:border-blue-300"
           }`}
         >
-          <p className="text-xs font-bold text-blue-800 uppercase tracking-wide">All Pros</p>
-          <p className="font-display text-2xl font-black text-slate-900 mt-1">{professionals.length}</p>
-          <span className="text-[10px] text-slate-500 font-semibold block mt-1">Directory →</span>
+          <p className="text-[11px] sm:text-xs font-bold text-blue-800 uppercase tracking-wide truncate">All Pros</p>
+          <p className="font-display text-xl sm:text-2xl font-black text-slate-900 mt-1">{professionals.length}</p>
+          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Directory →</span>
         </button>
 
         <button
@@ -828,15 +912,15 @@ export default function AdminDashboard() {
             setShowAvailableOnly(false);
             setSearch("");
           }}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+          className={`p-3 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${
             tab === "professionals" && showPendingOnly
               ? "bg-amber-50/90 border-amber-300 ring-2 ring-amber-400"
               : "bg-white border-slate-200 hover:border-amber-300"
           }`}
         >
-          <p className="text-xs font-bold text-amber-900 uppercase tracking-wide">Pending</p>
-          <p className="font-display text-2xl font-black text-slate-900 mt-1">{pendingCount}</p>
-          <span className="text-[10px] text-slate-500 font-semibold block mt-1">Review pros →</span>
+          <p className="text-[11px] sm:text-xs font-bold text-amber-900 uppercase tracking-wide truncate">Pending</p>
+          <p className="font-display text-xl sm:text-2xl font-black text-slate-900 mt-1">{pendingCount}</p>
+          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Review →</span>
         </button>
 
         <button
@@ -847,27 +931,27 @@ export default function AdminDashboard() {
             setShowPendingOnly(false);
             setSearch("");
           }}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+          className={`p-3 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${
             tab === "professionals" && showAvailableOnly
               ? "bg-emerald-50/90 border-emerald-300 ring-2 ring-emerald-400"
               : "bg-white border-slate-200 hover:border-emerald-300"
           }`}
         >
-          <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">Available</p>
-          <p className="font-display text-2xl font-black text-slate-900 mt-1">{availableCount}</p>
-          <span className="text-[10px] text-slate-500 font-semibold block mt-1">Active now →</span>
+          <p className="text-[11px] sm:text-xs font-bold text-emerald-800 uppercase tracking-wide truncate">Available</p>
+          <p className="font-display text-xl sm:text-2xl font-black text-slate-900 mt-1">{availableCount}</p>
+          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Active now →</span>
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+      {/* Responsive Horizontal Scroll Tabs */}
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 border-b border-slate-200 sm:flex-wrap">
         <button
           onClick={() => {
             setTab("instantBookings");
             setShowPendingOnly(false);
             setShowAvailableOnly(false);
           }}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             tab === "instantBookings"
               ? "bg-blue-600 text-white shadow-xs"
               : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
@@ -887,13 +971,13 @@ export default function AdminDashboard() {
             setShowPendingOnly(false);
             setShowAvailableOnly(false);
           }}
-          className={`flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             tab === "completedTasks"
               ? "bg-emerald-600 text-white shadow-xs"
               : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
           }`}
         >
-          <span>✅ Done Task List</span>
+          <span>✅ Done Tasks</span>
           <span className="bg-emerald-100 text-emerald-900 text-[10px] font-black px-2 py-0.5 rounded-full">
             {totalDoneCount}
           </span>
@@ -906,7 +990,7 @@ export default function AdminDashboard() {
             setShowAvailableOnly(false);
             loadCategories();
           }}
-          className={`flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             tab === "categories"
               ? "bg-purple-600 text-white shadow-xs"
               : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
@@ -926,13 +1010,13 @@ export default function AdminDashboard() {
             setShowPendingOnly(false);
             setShowAvailableOnly(false);
           }}
-          className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+          className={`rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             tab === "professionals"
               ? "bg-slate-900 text-white shadow-xs"
               : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
           }`}
         >
-          Professionals ({professionals.length})
+          Pros ({professionals.length})
         </button>
 
         <button
@@ -941,13 +1025,13 @@ export default function AdminDashboard() {
             setShowPendingOnly(false);
             setShowAvailableOnly(false);
           }}
-          className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+          className={`rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             tab === "bookings"
               ? "bg-slate-900 text-white shadow-xs"
               : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
           }`}
         >
-          Direct Bookings ({bookings.length})
+          Direct ({bookings.length})
         </button>
 
         <button
@@ -956,7 +1040,7 @@ export default function AdminDashboard() {
             setShowPendingOnly(false);
             setShowAvailableOnly(false);
           }}
-          className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+          className={`rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             tab === "users"
               ? "bg-slate-900 text-white shadow-xs"
               : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
@@ -967,28 +1051,28 @@ export default function AdminDashboard() {
       </div>
 
       {/* Search & Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={`Search in ${tab}...`}
-          className="min-w-[240px] flex-1 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+          className="w-full sm:min-w-[240px] sm:flex-1 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
         />
 
         {tab === "professionals" && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => {
                 setShowPendingOnly((value) => !value);
                 setShowAvailableOnly(false);
               }}
-              className={`rounded-xl border px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
+              className={`flex-1 sm:flex-initial rounded-xl border px-3 py-2 text-xs font-bold transition-all cursor-pointer text-center ${
                 showPendingOnly
                   ? "bg-amber-400 text-slate-950 border-amber-500 shadow-2xs"
                   : "bg-white text-slate-800 border-slate-300 hover:bg-slate-50"
               }`}
             >
-              {showPendingOnly ? "✓ Showing Pending Only" : "Filter: Pending Review"}
+              {showPendingOnly ? "✓ Pending Only" : "Filter: Pending"}
             </button>
 
             <button
@@ -996,13 +1080,13 @@ export default function AdminDashboard() {
                 setShowAvailableOnly((value) => !value);
                 setShowPendingOnly(false);
               }}
-              className={`rounded-xl border px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
+              className={`flex-1 sm:flex-initial rounded-xl border px-3 py-2 text-xs font-bold transition-all cursor-pointer text-center ${
                 showAvailableOnly
                   ? "bg-emerald-600 text-white border-emerald-700 shadow-2xs"
                   : "bg-white text-slate-800 border-slate-300 hover:bg-slate-50"
               }`}
             >
-              {showAvailableOnly ? "✓ Showing Available Only" : "Filter: Available Now"}
+              {showAvailableOnly ? "✓ Available Only" : "Filter: Available"}
             </button>
           </div>
         )}
@@ -1019,11 +1103,11 @@ export default function AdminDashboard() {
             displayedInstantBookings.map((item) => (
               <div
                 key={item.id}
-                className="p-6 rounded-2xl bg-white shadow-sm border border-slate-200/90 space-y-4"
+                className="p-4 sm:p-6 rounded-2xl bg-white shadow-sm border border-slate-200/90 space-y-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-display font-extrabold text-base text-slate-900">
                         {item.customerName}
                       </span>
@@ -1031,20 +1115,20 @@ export default function AdminDashboard() {
                         {item.categoryName}
                       </span>
                       {item.urgency === "ASAP" && (
-                        <span className="text-xs font-black bg-red-100 text-red-900 border border-red-200 px-2.5 py-0.5 rounded-lg animate-pulse">
-                          ⚡ EMERGENCY (ASAP)
+                        <span className="text-xs font-black bg-red-100 text-red-900 border border-red-200 px-2 py-0.5 rounded-lg animate-pulse">
+                          ⚡ EMERGENCY
                         </span>
                       )}
                     </div>
                     <p className="text-xs text-slate-600 font-medium mt-1">
-                      📍 {item.area} · {item.fullAddress} · {new Date(item.createdAt).toLocaleString()}
+                      📍 {item.area} {item.fullAddress ? `· ${item.fullAddress}` : ""} · {new Date(item.createdAt).toLocaleDateString()}
                     </p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
                     <a
                       href={`tel:${item.customerPhone}`}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all shadow-2xs flex items-center gap-1"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all shadow-2xs flex items-center gap-1 shrink-0"
                     >
                       <span>📞</span>
                       <span>{item.customerPhone}</span>
@@ -1055,12 +1139,12 @@ export default function AdminDashboard() {
                       <button
                         type="button"
                         onClick={() => updateInstantBookingStatus(item.id, "COMPLETED")}
-                        className="bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border border-emerald-300 text-xs font-extrabold px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-2xs"
+                        className="bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border border-emerald-300 text-xs font-extrabold px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-2xs shrink-0"
                       >
-                        ✅ Mark as Done
+                        ✅ Done
                       </button>
                     ) : (
-                      <span className="text-xs font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-lg">
+                      <span className="text-xs font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-lg shrink-0">
                         ✓ Done
                       </span>
                     )}
@@ -1068,7 +1152,7 @@ export default function AdminDashboard() {
                     <select
                       value={item.status}
                       onChange={(e) => updateInstantBookingStatus(item.id, e.target.value as any)}
-                      className={`text-xs font-bold rounded-lg border px-2.5 py-1.5 cursor-pointer ${
+                      className={`text-xs font-bold rounded-lg border px-2.5 py-1.5 cursor-pointer shrink-0 ${
                         item.status === "NEW"
                           ? "bg-red-50 text-red-900 border-red-300"
                           : item.status === "CONTACTED"
@@ -1080,10 +1164,10 @@ export default function AdminDashboard() {
                           : "bg-slate-100 text-slate-800 border-slate-300"
                       }`}
                     >
-                      <option value="NEW">🔴 NEW (Needs Callback)</option>
+                      <option value="NEW">🔴 NEW</option>
                       <option value="CONTACTED">🟡 CONTACTED</option>
                       <option value="ASSIGNED">🔵 ASSIGNED</option>
-                      <option value="COMPLETED">🟢 COMPLETED (DONE)</option>
+                      <option value="COMPLETED">🟢 COMPLETED</option>
                       <option value="CANCELLED">⚪ CANCELLED</option>
                     </select>
                   </div>
@@ -1178,13 +1262,13 @@ export default function AdminDashboard() {
       {tab === "completedTasks" && (
         <div className="space-y-4">
           {/* Timeframe Filter Bar */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1">Timeframe:</span>
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0 sm:flex-wrap">
+              <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mr-1 shrink-0">Filter:</span>
               <button
                 type="button"
                 onClick={() => setTimeframe("ALL")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   timeframe === "ALL"
                     ? "bg-slate-900 text-white shadow-xs"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -1195,7 +1279,7 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => setTimeframe("TODAY")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   timeframe === "TODAY"
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -1206,7 +1290,7 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => setTimeframe("THIS_WEEK")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   timeframe === "THIS_WEEK"
                     ? "bg-blue-600 text-white shadow-xs"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -1217,7 +1301,7 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => setTimeframe("THIS_MONTH")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   timeframe === "THIS_MONTH"
                     ? "bg-purple-600 text-white shadow-xs"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -1228,7 +1312,7 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => setTimeframe("THIS_YEAR")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   timeframe === "THIS_YEAR"
                     ? "bg-amber-600 text-white shadow-xs"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -1238,8 +1322,8 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <div className="text-xs font-bold text-slate-500">
-              Showing {filteredDoneTasks.length} completed tasks
+            <div className="text-[11px] sm:text-xs font-bold text-slate-500 self-end sm:self-auto">
+              Showing {filteredDoneTasks.length} done tasks
             </div>
           </div>
 
@@ -1554,8 +1638,8 @@ export default function AdminDashboard() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-lg group-hover:scale-110 transition-transform">
-                        📂
+                      <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xl group-hover:scale-110 transition-transform">
+                        {getCategoryEmoji(cat.icon, cat.slug)}
                       </div>
                       <div>
                         <h3 className="font-display font-bold text-sm text-slate-900 group-hover:text-purple-700 transition-colors">
@@ -1600,13 +1684,13 @@ export default function AdminDashboard() {
 
       {/* MODAL 1: EDIT PROFESSIONAL PROFILE */}
       {selectedProfessional && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
-          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto p-6 md:p-8 space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
+          <div className="w-full max-w-lg sm:max-w-2xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
+            <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <ProfilePhoto name={selectedProfessional.user.name} photoUrl={selectedProfessional.photoUrl} size="lg" />
+                <ProfilePhoto name={selectedProfessional.user.name} photoUrl={selectedProfessional.photoUrl} size="md" />
                 <div>
-                  <h2 className="font-display font-extrabold text-xl text-slate-900">{selectedProfessional.user.name}</h2>
+                  <h2 className="font-display font-extrabold text-base sm:text-xl text-slate-900">{selectedProfessional.user.name}</h2>
                   <p className="text-xs text-blue-700 font-bold">{selectedProfessional.category.nameEn} · ID: #{selectedProfessional.id.slice(-6)}</p>
                 </div>
               </div>
@@ -1619,7 +1703,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-4 gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
               <div>
                 <p className="text-[10px] uppercase font-bold text-slate-500">Total Jobs</p>
                 <p className="font-bold text-base text-slate-900">{selectedProfessional.stats.totalBookings}</p>
@@ -1639,34 +1723,34 @@ export default function AdminDashboard() {
             </div>
 
             {/* Editable Form */}
-            <div className="space-y-4 text-xs">
-              <div className="flex flex-wrap gap-2">
+            <div className="space-y-3 sm:space-y-4 text-xs">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   type="button"
                   onClick={() => toggleVerify(selectedProfessional.id, selectedProfessional.isVerified)}
-                  className={`px-4 py-2 rounded-xl font-bold cursor-pointer transition-all ${
+                  className={`flex-1 px-4 py-2.5 rounded-xl font-bold cursor-pointer transition-all text-center ${
                     selectedProfessional.isVerified
                       ? "bg-emerald-600 text-white"
                       : "bg-amber-100 text-amber-950 border border-amber-300"
                   }`}
                 >
-                  {selectedProfessional.isVerified ? "✓ Verified & Active on Website" : "⚠️ Pending Review (Click to Verify)"}
+                  {selectedProfessional.isVerified ? "✓ Verified on Website" : "⚠️ Review (Click to Verify)"}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => toggleAvailability(selectedProfessional.id, selectedProfessional.isAvailable)}
-                  className={`px-4 py-2 rounded-xl font-bold cursor-pointer transition-all ${
+                  className={`flex-1 px-4 py-2.5 rounded-xl font-bold cursor-pointer transition-all text-center ${
                     selectedProfessional.isAvailable
                       ? "bg-emerald-50 text-emerald-900 border border-emerald-300"
                       : "bg-slate-200 text-slate-700"
                   }`}
                 >
-                  {selectedProfessional.isAvailable ? "● Available for Direct Jobs" : "Unavailable"}
+                  {selectedProfessional.isAvailable ? "● Available for Jobs" : "Unavailable"}
                 </button>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="font-bold text-slate-800 block mb-1">Upazila / Area</label>
                   <BangladeshUpazilaInput
@@ -1687,7 +1771,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="font-bold text-slate-800 block mb-1">Experience (Years)</label>
                   <input
@@ -1721,11 +1805,11 @@ export default function AdminDashboard() {
             </div>
 
             {/* Action Bar */}
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-4 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => deleteProfessionalListing(selectedProfessional.id)}
-                className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer"
+                className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer text-center py-2"
               >
                 🗑️ Delete Professional Listing
               </button>
@@ -1734,7 +1818,7 @@ export default function AdminDashboard() {
                 <button
                   type="button"
                   onClick={() => setSelectedProfessional(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                  className="flex-1 sm:flex-initial px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer text-center"
                 >
                   Cancel
                 </button>
@@ -1742,7 +1826,7 @@ export default function AdminDashboard() {
                   type="button"
                   disabled={savingPro}
                   onClick={saveProfessionalEdits}
-                  className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 text-xs font-bold rounded-xl shadow-xs cursor-pointer"
+                  className="flex-1 sm:flex-initial bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 text-xs font-bold rounded-xl shadow-xs cursor-pointer text-center"
                 >
                   {savingPro ? "Saving..." : "💾 Save Changes"}
                 </button>
@@ -1754,14 +1838,14 @@ export default function AdminDashboard() {
 
       {/* MODAL 2: EDIT USER PROFILE */}
       {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
-          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 md:p-8 space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
+          <div className="w-full max-w-md sm:max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <ProfilePhoto name={selectedUser.name} photoUrl={selectedUser.photoUrl} size="lg" />
+                <ProfilePhoto name={selectedUser.name} photoUrl={selectedUser.photoUrl} size="md" />
                 <div>
-                  <h2 className="font-display font-extrabold text-xl text-slate-900">{selectedUser.name}</h2>
-                  <p className="text-xs text-slate-500">{selectedUser.email}</p>
+                  <h2 className="font-display font-extrabold text-base sm:text-xl text-slate-900">{selectedUser.name}</h2>
+                  <p className="text-xs text-slate-500 break-all">{selectedUser.email}</p>
                 </div>
               </div>
               <button
@@ -1773,7 +1857,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Editable Form */}
-            <div className="space-y-4 text-xs">
+            <div className="space-y-3 sm:space-y-4 text-xs">
               <div>
                 <label className="font-bold text-slate-800 block mb-1">Full Name</label>
                 <input
@@ -1806,18 +1890,18 @@ export default function AdminDashboard() {
                 </select>
               </div>
 
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-600 text-[11px] font-medium">
-                <p>User ID: <span className="font-mono text-slate-900">{selectedUser.id}</span></p>
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-600 text-[11px] font-medium space-y-1">
+                <p>User ID: <span className="font-mono text-slate-900 break-all">{selectedUser.id}</span></p>
                 <p>Joined: {new Date(selectedUser.createdAt).toLocaleDateString()}</p>
               </div>
             </div>
 
             {/* Action Bar */}
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-4 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => deleteUser(selectedUser.id)}
-                className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer"
+                className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer text-center py-2"
               >
                 🗑️ Delete User
               </button>
@@ -1826,7 +1910,7 @@ export default function AdminDashboard() {
                 <button
                   type="button"
                   onClick={() => setSelectedUser(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                  className="flex-1 sm:flex-initial px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer text-center"
                 >
                   Cancel
                 </button>
@@ -1834,7 +1918,7 @@ export default function AdminDashboard() {
                   type="button"
                   disabled={savingUser}
                   onClick={saveUserEdits}
-                  className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 text-xs font-bold rounded-xl shadow-xs cursor-pointer"
+                  className="flex-1 sm:flex-initial bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 text-xs font-bold rounded-xl shadow-xs cursor-pointer text-center"
                 >
                   {savingUser ? "Saving..." : "💾 Save Changes"}
                 </button>
@@ -1846,13 +1930,13 @@ export default function AdminDashboard() {
 
       {/* MODAL 3: ADD NEW SERVICE CATEGORY */}
       {showAddCategoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
-          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 md:p-8 space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
+          <div className="w-full max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-5 sm:p-7 space-y-4 sm:space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
-                <span className="text-2xl">📂</span>
+                <span className="text-2xl">{getCategoryEmoji(newCatIcon)}</span>
                 <div>
-                  <h2 className="font-display font-extrabold text-xl text-slate-900">
+                  <h2 className="font-display font-extrabold text-lg sm:text-xl text-slate-900">
                     Add Service Category
                   </h2>
                   <p className="text-xs text-slate-500">Create a new local service category</p>
@@ -1877,7 +1961,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            <form onSubmit={handleCreateCategory} className="space-y-4 text-xs">
+            <form onSubmit={handleCreateCategory} className="space-y-3 sm:space-y-4 text-xs">
               <div>
                 <label className="font-bold text-slate-800 block mb-1">
                   Category Name (English) <span className="text-red-500">*</span>
@@ -1898,7 +1982,7 @@ export default function AdminDashboard() {
                     );
                   }}
                   placeholder="e.g. Water Purifier & Filter"
-                  className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 sm:p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
                 />
               </div>
 
@@ -1912,94 +1996,92 @@ export default function AdminDashboard() {
                   value={newCatNameBn}
                   onChange={(e) => setNewCatNameBn(e.target.value)}
                   placeholder="e.g. ওয়াটার ফিল্টার সার্ভিস"
-                  className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 sm:p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-800 block mb-1">
-                    URL Slug <span className="text-slate-400 text-[10px]">(Auto)</span>
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">
+                  URL Slug <span className="text-slate-400 text-[10px]">(Auto generated or custom)</span>
+                </label>
+                <input
+                  type="text"
+                  value={newCatSlug}
+                  onChange={(e) => setNewCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-"))}
+                  placeholder="water-filter"
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 sm:p-3 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
+                />
+              </div>
+
+              {/* VISUAL ICON THEME CHOOSER */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="font-bold text-slate-800 text-xs">
+                    Choose Icon Theme <span className="text-purple-600 font-normal text-[11px]">(Click any icon)</span>
                   </label>
-                  <input
-                    type="text"
-                    value={newCatSlug}
-                    onChange={(e) => setNewCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-"))}
-                    placeholder="water-filter"
-                    className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
-                  />
+                  <span className="text-[11px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-purple-200">
+                    <span>{getCategoryEmoji(newCatIcon)}</span>
+                    <span>{ICON_THEMES.find((t) => t.id === (newCatIcon || "wrench"))?.label || newCatIcon}</span>
+                  </span>
                 </div>
 
-                <div>
-                  <label className="font-bold text-slate-800 block mb-1">Icon Theme</label>
-                  <select
-                    value={newCatIcon}
-                    onChange={(e) => setNewCatIcon(e.target.value)}
-                    className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none cursor-pointer font-medium"
-                  >
-                    <option value="wrench">🔧 Wrench / Repair</option>
-                    <option value="zap">⚡ Zap / Electric</option>
-                    <option value="droplet">💧 Droplet / Plumbing</option>
-                    <option value="wind">💨 Wind / AC Cooling</option>
-                    <option value="snowflake">❄️ Snowflake / Fridge</option>
-                    <option value="sparkles">✨ Sparkles / Cleaning</option>
-                    <option value="paintbrush">🖌️ Paintbrush / Painter</option>
-                    <option value="hammer">🔨 Hammer / Carpenter</option>
-                    <option value="smartphone">📱 Smartphone / Mobile</option>
-                    <option value="monitor">💻 Monitor / Computer</option>
-                    <option value="wifi">📶 WiFi / Internet</option>
-                    <option value="camera">📷 Camera / CCTV</option>
-                    <option value="book-open">📖 Book / Home Tutor</option>
-                    <option value="battery-charging">🔋 Battery / IPS Generator</option>
-                    <option value="sun">☀️ Sun / Solar</option>
-                    <option value="flame">🔥 Flame / Gas Stove</option>
-                    <option value="filter">🚰 Filter / Purifier</option>
-                    <option value="activity">⚙️ Motor / Pump</option>
-                    <option value="shield">🛡️ Shield / Pest Control</option>
-                    <option value="tool">🛠️ Tool / Welding</option>
-                    <option value="grid">🧱 Grid / Masonry Tiles</option>
-                    <option value="truck">🚚 Truck / Movers</option>
-                    <option value="tv">📺 TV / Electronics</option>
-                    <option value="scissors">✂️ Scissors / Beauty Salon</option>
-                    <option value="aperture">📸 Aperture / Photography</option>
-                    <option value="trash">🗑️ Trash / Septic Tank</option>
-                  </select>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-44 overflow-y-auto p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                  {ICON_THEMES.map((theme) => {
+                    const isSelected = (newCatIcon || "wrench") === theme.id;
+                    return (
+                      <button
+                        key={theme.id}
+                        type="button"
+                        onClick={() => setNewCatIcon(theme.id)}
+                        className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-purple-100/90 border-purple-500 ring-2 ring-purple-500 shadow-xs scale-105 font-bold"
+                            : "bg-white border-slate-200 hover:border-purple-300 hover:bg-purple-50/50"
+                        }`}
+                      >
+                        <span className="text-2xl mb-1">{theme.emoji}</span>
+                        <span className="text-[10px] font-semibold text-slate-700 leading-tight line-clamp-1">
+                          {theme.label.split(" ")[0]}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Real-time Category Preview Card */}
               {newCatNameEn && (
-                <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-2xl flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-purple-200 text-purple-800 flex items-center justify-center font-bold text-sm">
-                      📂
+                <div className="p-3.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border border-purple-200 rounded-2xl flex items-center justify-between shadow-2xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-purple-200 text-purple-900 flex items-center justify-center font-bold text-2xl shadow-2xs">
+                      {getCategoryEmoji(newCatIcon)}
                     </div>
                     <div>
-                      <p className="font-bold text-xs text-purple-950">{newCatNameEn}</p>
-                      <p className="text-[10px] text-purple-700 font-semibold">{newCatNameBn || "বাংলা নাম..."}</p>
+                      <p className="font-extrabold text-sm text-purple-950">{newCatNameEn}</p>
+                      <p className="text-xs text-purple-700 font-semibold">{newCatNameBn || "বাংলা নাম..."}</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded text-purple-900 border border-purple-200">
+                  <span className="text-[11px] font-mono bg-white px-2.5 py-1 rounded-lg text-purple-900 border border-purple-200 font-bold shadow-2xs">
                     /{newCatSlug || "slug"}
                   </span>
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddCategoryModal(false);
                     setCreateCatError("");
                   }}
-                  className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                  className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer text-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creatingCategory}
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer text-center"
                 >
                   {creatingCategory ? "Creating..." : "➕ Create Category"}
                 </button>
@@ -2011,13 +2093,13 @@ export default function AdminDashboard() {
 
       {/* MODAL 4: EDIT SERVICE CATEGORY */}
       {editingCategory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
-          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 md:p-8 space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
+          <div className="w-full max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-5 sm:p-7 space-y-4 sm:space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
-                <span className="text-2xl">✏️</span>
+                <span className="text-2xl">{getCategoryEmoji(editCatIcon)}</span>
                 <div>
-                  <h2 className="font-display font-extrabold text-xl text-slate-900">
+                  <h2 className="font-display font-extrabold text-lg sm:text-xl text-slate-900">
                     Edit Category
                   </h2>
                   <p className="text-xs text-slate-500">{editingCategory.nameEn}</p>
@@ -2042,89 +2124,116 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            <form onSubmit={handleSaveCategoryEdits} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveCategoryEdits} className="space-y-3 sm:space-y-4 text-xs">
               <div>
                 <label className="font-bold text-slate-800 block mb-1">
-                  Category Name (English)
+                  Category Name (English) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={editCatNameEn}
                   onChange={(e) => setEditCatNameEn(e.target.value)}
-                  className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 sm:p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
                 />
               </div>
 
               <div>
                 <label className="font-bold text-slate-800 block mb-1">
-                  Category Name (Bangla)
+                  Category Name (Bangla) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={editCatNameBn}
                   onChange={(e) => setEditCatNameBn(e.target.value)}
-                  className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 sm:p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-800 block mb-1">URL Slug</label>
-                  <input
-                    type="text"
-                    required
-                    value={editCatSlug}
-                    onChange={(e) => setEditCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-"))}
-                    className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
-                  />
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">URL Slug</label>
+                <input
+                  type="text"
+                  required
+                  value={editCatSlug}
+                  onChange={(e) => setEditCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-"))}
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 sm:p-3 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
+                />
+              </div>
+
+              {/* VISUAL ICON THEME CHOOSER */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="font-bold text-slate-800 text-xs">
+                    Choose Icon Theme <span className="text-purple-600 font-normal text-[11px]">(Click any icon)</span>
+                  </label>
+                  <span className="text-[11px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-purple-200">
+                    <span>{getCategoryEmoji(editCatIcon)}</span>
+                    <span>{ICON_THEMES.find((t) => t.id === (editCatIcon || "wrench"))?.label || editCatIcon}</span>
+                  </span>
                 </div>
 
-                <div>
-                  <label className="font-bold text-slate-800 block mb-1">Icon Theme</label>
-                  <input
-                    type="text"
-                    value={editCatIcon}
-                    onChange={(e) => setEditCatIcon(e.target.value)}
-                    className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
-                  />
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-44 overflow-y-auto p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                  {ICON_THEMES.map((theme) => {
+                    const isSelected = (editCatIcon || "wrench") === theme.id;
+                    return (
+                      <button
+                        key={theme.id}
+                        type="button"
+                        onClick={() => setEditCatIcon(theme.id)}
+                        className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-purple-100/90 border-purple-500 ring-2 ring-purple-500 shadow-xs scale-105 font-bold"
+                            : "bg-white border-slate-200 hover:border-purple-300 hover:bg-purple-50/50"
+                        }`}
+                      >
+                        <span className="text-2xl mb-1">{theme.emoji}</span>
+                        <span className="text-[10px] font-semibold text-slate-700 leading-tight line-clamp-1">
+                          {theme.label.split(" ")[0]}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              {/* Real-time Category Preview Card */}
+              {editCatNameEn && (
+                <div className="p-3.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border border-purple-200 rounded-2xl flex items-center justify-between shadow-2xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-purple-200 text-purple-900 flex items-center justify-center font-bold text-2xl shadow-2xs">
+                      {getCategoryEmoji(editCatIcon)}
+                    </div>
+                    <div>
+                      <p className="font-extrabold text-sm text-purple-950">{editCatNameEn}</p>
+                      <p className="text-xs text-purple-700 font-semibold">{editCatNameBn || "বাংলা নাম..."}</p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-mono bg-white px-2.5 py-1 rounded-lg text-purple-900 border border-purple-200 font-bold shadow-2xs">
+                    /{editCatSlug || "slug"}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => {
-                    const id = editingCategory.id;
-                    const name = editingCategory.nameEn;
                     setEditingCategory(null);
-                    handleDeleteCategory(id, name);
+                    setEditCatError("");
                   }}
-                  className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer"
+                  className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer text-center"
                 >
-                  🗑️ Delete Category
+                  Cancel
                 </button>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingCategory(null);
-                      setEditCatError("");
-                    }}
-                    className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingCategory}
-                    className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
-                  >
-                    {savingCategory ? "Saving..." : "💾 Save Changes"}
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={savingCategory}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer text-center"
+                >
+                  {savingCategory ? "Saving..." : "💾 Save Changes"}
+                </button>
               </div>
             </form>
           </div>

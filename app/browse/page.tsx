@@ -163,17 +163,17 @@ function BrowseContent() {
   }, [results, location]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10">
+    <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="font-display text-3xl font-extrabold text-slate-900">{t("browse")}</h1>
-          <p className="text-xs text-slate-600 mt-1">
+          <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-slate-900">{t("browse")}</h1>
+          <p className="text-xs text-slate-600 mt-0.5">
             {lang === "bn" ? "যাচাইকৃত স্থানীয় কারিগর ও প্রফেশনাল খুঁজুন" : "Find verified local technicians and professionals"}
           </p>
         </div>
         <Link
           href="/instant-book"
-          className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 px-4 py-2 rounded-xl text-xs font-black shadow-md animate-emergency transition-all w-fit border border-amber-300/80"
+          className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-black shadow-md animate-emergency transition-all w-fit border border-amber-300/80"
         >
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-60"></span>
@@ -184,14 +184,14 @@ function BrowseContent() {
         </Link>
       </div>
 
-      <form onSubmit={applyFilters} className="relative z-30 flex flex-col sm:flex-row gap-3 mb-6 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+      <form onSubmit={applyFilters} className="relative z-30 flex flex-col sm:flex-row gap-2.5 sm:gap-3 mb-5 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("searchPlaceholder")}
-          className="flex-1 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-500 focus:border-blue-600 focus:outline-none"
+          className="w-full flex-1 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-500 focus:border-blue-600 focus:outline-none"
         />
-        <div className="flex-1 relative">
+        <div className="w-full flex-1 relative">
           <BangladeshUpazilaInput
             value={area}
             onChange={setArea}
@@ -201,13 +201,13 @@ function BrowseContent() {
         </div>
         <button
           type="submit"
-          className="w-full sm:w-auto shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 font-bold text-sm rounded-xl transition-all shadow-xs cursor-pointer"
+          className="w-full sm:w-auto shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 font-bold text-sm rounded-xl transition-all shadow-xs cursor-pointer text-center"
         >
           {t("search")}
         </button>
       </form>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3 text-sm">
+      <div className="mb-6 flex flex-wrap items-center gap-2 text-sm">
         <button
           type="button"
           onClick={useCurrentLocation}
@@ -229,7 +229,7 @@ function BrowseContent() {
         </button>
 
         {locationMessage && (
-          <span className="text-xs text-blue-900 font-bold bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200">
+          <span className="text-xs text-blue-900 font-bold bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 break-words">
             {locationMessage}
           </span>
         )}
@@ -249,11 +249,11 @@ function BrowseContent() {
       {loading ? (
         <div className="text-center py-16 text-slate-600 font-medium text-sm">{t("loading")}</div>
       ) : sortedResults.length === 0 ? (
-        <div className="signplate bg-white p-12 text-center text-slate-600 text-sm border border-slate-200">
+        <div className="signplate bg-white p-8 sm:p-12 text-center text-slate-600 text-sm border border-slate-200 rounded-2xl">
           {t("noProfessionalsFound")}
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
           {sortedResults.map((p) => (
             <Link
               key={p.id}

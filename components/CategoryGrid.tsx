@@ -8,21 +8,75 @@ type Category = {
   slug: string;
   nameEn: string;
   nameBn: string;
+  icon?: string | null;
 };
 
-const iconFor: Record<string, string> = {
+const iconForTheme: Record<string, string> = {
+  wrench: "🔧",
+  zap: "⚡",
+  droplet: "💧",
+  wind: "💨",
+  snowflake: "❄️",
+  sparkles: "✨",
+  paintbrush: "🖌️",
+  hammer: "🔨",
+  smartphone: "📱",
+  monitor: "💻",
+  wifi: "📶",
+  camera: "📷",
+  "book-open": "📖",
+  "battery-charging": "🔋",
+  sun: "☀️",
+  flame: "🔥",
+  filter: "🚰",
+  activity: "⚙️",
+  shield: "🛡️",
+  tool: "🛠️",
+  grid: "🧱",
+  truck: "🚚",
+  tv: "📺",
+  scissors: "✂️",
+  aperture: "📸",
+  trash: "🗑️",
+  car: "🚗",
+  home: "🏠",
+  lock: "🔒",
+  briefcase: "💼",
+};
+
+const iconForSlug: Record<string, string> = {
   electrician: "⚡",
   plumber: "🚰",
   "ac-repair": "❄️",
-  cleaning: "🧹",
-  painter: "🎨",
-  carpenter: "🪚",
+  refrigerator: "❄️",
+  cleaning: "✨",
+  painter: "🖌️",
+  carpenter: "🔨",
   "mobile-repair": "📱",
+  computer: "💻",
   "internet-tech": "📶",
-  mechanic: "🔧",
   cctv: "📷",
-  tutor: "📚",
+  tutor: "📖",
+  ips: "🔋",
+  solar: "☀️",
+  "gas-stove": "🔥",
+  "water-purifier": "🚰",
+  "generator-motor": "⚙️",
+  "pest-control": "🛡️",
+  welder: "🛠️",
+  masonry: "🧱",
+  "movers-packers": "🚚",
+  electronics: "📺",
+  salon: "✂️",
+  photographer: "📸",
+  "septic-tank": "🗑️",
 };
+
+function getCatIcon(c: Category) {
+  if (c.icon && iconForTheme[c.icon]) return iconForTheme[c.icon];
+  if (c.slug && iconForSlug[c.slug]) return iconForSlug[c.slug];
+  return "🛠️";
+}
 
 export default function CategoryGrid({ categories }: { categories: Category[] }) {
   const { lang, t } = useLanguage();
@@ -60,7 +114,7 @@ export default function CategoryGrid({ categories }: { categories: Category[] })
 
             {/* Icon Container with subtle pulse animation on hover */}
             <div className="h-14 w-14 rounded-2xl bg-slate-50 group-hover:bg-blue-50 group-hover:scale-110 flex items-center justify-center text-3xl transition-all duration-300 shadow-2xs">
-              <span>{iconFor[c.slug] ?? "🛠️"}</span>
+              <span>{getCatIcon(c)}</span>
             </div>
 
             <span className="font-display font-extrabold text-sm text-slate-900 group-hover:text-blue-700 transition-colors">

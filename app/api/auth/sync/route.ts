@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { decodeJwt } from "jose";
+import { createId } from "@paralleldrive/cuid2";
 import { eq, or } from "drizzle-orm";
 import { db } from "@/db";
 import { users, professionalProfiles } from "@/db/schema";
@@ -105,6 +106,7 @@ export async function POST(req: Request) {
       const [created] = await db
         .insert(users)
         .values({
+          id: createId(),
           name,
           email,
           phone,
@@ -150,6 +152,6 @@ export async function POST(req: Request) {
     return response;
   } catch (err) {
     console.error("Auth sync error:", err);
-    return NextResponse.json({ error: "Failed to sync session." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to sync session with database." }, { status: 500 });
   }
 }

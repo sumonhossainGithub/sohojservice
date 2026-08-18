@@ -114,7 +114,11 @@ function AuthCallbackContent() {
             await handleSync(data.session.access_token);
             return;
           } else if (exchangeError) {
-            console.warn("Client code exchange notice:", exchangeError.message);
+            console.error("Code exchange failed:", exchangeError);
+            if (!unmounted) {
+              setError(`OAuth Code Exchange Error: ${exchangeError.message}`);
+            }
+            return;
           }
         }
 
@@ -141,7 +145,7 @@ function AuthCallbackContent() {
         const timer = setTimeout(() => {
           if (!unmounted && !syncInitiated && !error) {
             setError(
-              "Google sign-in did not return session credentials. Please check your Supabase redirect URLs and try again."
+              "Google sign-in did not return authentication credentials. Please verify your Supabase Redirect URLs."
             );
           }
         }, 10000);

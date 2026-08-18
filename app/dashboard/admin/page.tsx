@@ -1650,6 +1650,7 @@ export default function AdminDashboard() {
       {/* TAB 6: SERVICE CATEGORIES */}
       {tab === "categories" && (
         <div className="space-y-4">
+          {/* Header Banner */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-purple-50/70 border border-purple-200/80 rounded-2xl">
             <div>
               <h2 className="font-display font-extrabold text-base text-purple-950">
@@ -1678,11 +1679,139 @@ export default function AdminDashboard() {
                 className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-extrabold px-4 py-2.5 rounded-xl shadow-sm transition-all hover:shadow hover:scale-[1.02] active:scale-95 cursor-pointer shrink-0 flex items-center gap-1.5"
               >
                 <span>➕</span>
-                <span>Add New Category</span>
+                <span>Add Category Modal</span>
               </button>
             </div>
           </div>
 
+          {/* INLINE QUICK ADD CATEGORY FORM (Available directly on the page without scrolling) */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-purple-200/90 shadow-sm space-y-3.5">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-lg font-bold">
+                  {getCategoryEmoji(newCatIcon)}
+                </span>
+                <div>
+                  <h3 className="font-display font-bold text-sm text-slate-900">
+                    Quick Add Category
+                  </h3>
+                  <p className="text-[11px] text-slate-500">Create a category instantly without popups</p>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                Icon: {newCatIcon || "wrench"}
+              </span>
+            </div>
+
+            {createCatError && (
+              <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{createCatError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateCategory} className="space-y-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">
+                    Name (English) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newCatNameEn}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNewCatNameEn(val);
+                      setNewCatSlug(
+                        val
+                          .toLowerCase()
+                          .trim()
+                          .replace(/[^a-z0-9]+/g, "-")
+                          .replace(/^-+|-+$/g, "")
+                      );
+                    }}
+                    placeholder="e.g. Water Purifier"
+                    className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">
+                    Name (Bangla) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newCatNameBn}
+                    onChange={(e) => setNewCatNameBn(e.target.value)}
+                    placeholder="e.g. ওয়াটার ফিল্টার"
+                    className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">
+                    URL Slug
+                  </label>
+                  <input
+                    type="text"
+                    value={newCatSlug}
+                    onChange={(e) => setNewCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-"))}
+                    placeholder="water-purifier"
+                    className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Compact Visual Icon Keyboard */}
+              <div>
+                <label className="font-bold text-slate-800 block mb-1 text-xs">
+                  Pick Theme Icon: <span className="font-normal text-slate-500">(Click any icon)</span>
+                </label>
+                <div className="grid grid-cols-8 sm:grid-cols-12 md:grid-cols-16 gap-1 max-h-24 overflow-y-auto p-1.5 bg-slate-50 border border-slate-200 rounded-xl no-scrollbar">
+                  {ICON_THEMES.map((theme) => {
+                    const isSelected = (newCatIcon || "wrench") === theme.id;
+                    return (
+                      <button
+                        key={theme.id}
+                        type="button"
+                        title={theme.label}
+                        onClick={() => setNewCatIcon(theme.id)}
+                        className={`h-8 w-full flex items-center justify-center rounded-lg text-base transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-purple-600 text-white shadow-xs scale-105 ring-2 ring-purple-600 ring-offset-1 z-10"
+                            : "bg-white text-slate-800 border border-slate-200/80 hover:bg-purple-100 hover:scale-105"
+                        }`}
+                      >
+                        <span>{theme.emoji}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                {newCatNameEn ? (
+                  <div className="text-[11px] text-purple-900 font-bold flex items-center gap-1.5">
+                    <span>Preview:</span>
+                    <span>{getCategoryEmoji(newCatIcon)} {newCatNameEn} ({newCatNameBn || "..."})</span>
+                  </div>
+                ) : <span />}
+
+                <button
+                  type="submit"
+                  disabled={creatingCategory}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 self-end"
+                >
+                  <span>➕</span>
+                  <span>{creatingCategory ? "Creating..." : "Add Category"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Category Cards List */}
           {displayedCategories.length === 0 ? (
             <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
               <span className="text-3xl block">📂</span>
@@ -1697,16 +1826,6 @@ export default function AdminDashboard() {
                   className="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold px-4 py-2 rounded-xl cursor-pointer"
                 >
                   🔄 Reload List
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCreateCatError("");
-                    setShowAddCategoryModal(true);
-                  }}
-                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer"
-                >
-                  ➕ Add New Category
                 </button>
               </div>
             </div>
@@ -1766,8 +1885,8 @@ export default function AdminDashboard() {
 
       {/* MODAL 1: EDIT PROFESSIONAL PROFILE */}
       {selectedProfessional && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
-          <div className="w-full max-w-lg sm:max-w-2xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs p-2.5 sm:p-4 flex min-h-full items-start sm:items-center justify-center motion-enter">
+          <div className="relative w-full max-w-lg sm:max-w-2xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 my-auto">
             <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
                 <ProfilePhoto name={selectedProfessional.user.name} photoUrl={selectedProfessional.photoUrl} size="md" />
@@ -1920,8 +2039,8 @@ export default function AdminDashboard() {
 
       {/* MODAL 2: EDIT USER PROFILE */}
       {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
-          <div className="w-full max-w-md sm:max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs p-2.5 sm:p-4 flex min-h-full items-start sm:items-center justify-center motion-enter">
+          <div className="relative w-full max-w-md sm:max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 max-h-[92vh] overflow-y-auto my-auto">
             <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
                 <ProfilePhoto name={selectedUser.name} photoUrl={selectedUser.photoUrl} size="md" />
@@ -2012,8 +2131,8 @@ export default function AdminDashboard() {
 
       {/* MODAL 3: ADD NEW SERVICE CATEGORY */}
       {showAddCategoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/65 backdrop-blur-xs motion-enter overflow-y-auto">
-          <div className="w-full max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 space-y-3.5 my-auto max-h-[92vh] flex flex-col justify-between">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs p-2.5 sm:p-4 flex min-h-full items-start sm:items-center justify-center motion-enter">
+          <div className="relative w-full max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 space-y-3.5 my-auto max-h-[92vh] flex flex-col justify-between">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2.5">
@@ -2181,8 +2300,8 @@ export default function AdminDashboard() {
 
       {/* MODAL 4: EDIT SERVICE CATEGORY */}
       {editingCategory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/65 backdrop-blur-xs motion-enter overflow-y-auto">
-          <div className="w-full max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 space-y-3.5 my-auto max-h-[92vh] flex flex-col justify-between">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs p-2.5 sm:p-4 flex min-h-full items-start sm:items-center justify-center motion-enter">
+          <div className="relative w-full max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 space-y-3.5 my-auto max-h-[92vh] flex flex-col justify-between">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2.5">

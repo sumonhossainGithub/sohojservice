@@ -25,8 +25,8 @@ function RoleSelectionContent() {
   const [city, setCity] = useState("Sirajganj");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
-  const [yearsExperience, setYearsExperience] = useState(2);
-  const [ratePerVisit, setRatePerVisit] = useState(300);
+  const [yearsExperience, setYearsExperience] = useState<number | "">(2);
+  const [ratePerVisit, setRatePerVisit] = useState<number | "">(300);
   const [bio, setBio] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -83,8 +83,8 @@ function RoleSelectionContent() {
           categoryId: categoryId || (categories[0]?.id ?? ""),
           area: area.trim() || "Sirajganj Sadar",
           city: city.trim() || "Sirajganj",
-          yearsExperience: Number(yearsExperience),
-          ratePerVisit: Number(ratePerVisit),
+          yearsExperience: yearsExperience === "" ? 0 : Number(yearsExperience),
+          ratePerVisit: ratePerVisit === "" ? 0 : Number(ratePerVisit),
           bio: bio.trim() || undefined,
           latitude: latitude,
           longitude: longitude,
@@ -319,7 +319,8 @@ function RoleSelectionContent() {
                   min={0}
                   max={40}
                   value={yearsExperience}
-                  onChange={(e) => setYearsExperience(Number(e.target.value) || 0)}
+                  onChange={(e) => setYearsExperience(e.target.value === "" ? "" : Number(e.target.value))}
+                  placeholder="e.g. 2"
                   className="w-full border border-slate-300 bg-white rounded-xl p-3 text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none"
                 />
               </div>
@@ -329,10 +330,11 @@ function RoleSelectionContent() {
                 <label className="font-bold text-slate-800 block mb-1">Visiting Fee (BDT ৳)</label>
                 <input
                   type="number"
-                  min={50}
+                  min={0}
                   step={50}
                   value={ratePerVisit}
-                  onChange={(e) => setRatePerVisit(Number(e.target.value) || 0)}
+                  onChange={(e) => setRatePerVisit(e.target.value === "" ? "" : Number(e.target.value))}
+                  placeholder="e.g. 300"
                   className="w-full border border-slate-300 bg-white rounded-xl p-3 text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none"
                 />
               </div>

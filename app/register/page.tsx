@@ -41,8 +41,8 @@ function RegisterForm() {
   const [city, setCity] = useState("Sirajganj");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
-  const [yearsExperience, setYearsExperience] = useState<number>(2);
-  const [ratePerVisit, setRatePerVisit] = useState<number>(300);
+  const [yearsExperience, setYearsExperience] = useState<number | "">(2);
+  const [ratePerVisit, setRatePerVisit] = useState<number | "">(300);
   const [bio, setBio] = useState("");
 
   // Status
@@ -163,8 +163,8 @@ function RegisterForm() {
               categoryId: categoryId || (categories[0]?.id ?? undefined),
               area: area.trim(),
               city: city.trim() || "Sirajganj",
-              yearsExperience: Number(yearsExperience),
-              ratePerVisit: Number(ratePerVisit),
+              yearsExperience: yearsExperience === "" ? 0 : Number(yearsExperience),
+              ratePerVisit: ratePerVisit === "" ? 0 : Number(ratePerVisit),
               bio: bio.trim() || undefined,
             }
           : {}),
@@ -416,7 +416,8 @@ function RegisterForm() {
                       min={0}
                       max={40}
                       value={yearsExperience}
-                      onChange={(e) => setYearsExperience(parseInt(e.target.value) || 0)}
+                      onChange={(e) => setYearsExperience(e.target.value === "" ? "" : Number(e.target.value))}
+                      placeholder="e.g. 2"
                       className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none"
                     />
                   </div>
@@ -427,10 +428,11 @@ function RegisterForm() {
                     </label>
                     <input
                       type="number"
-                      min={50}
+                      min={0}
                       step={50}
                       value={ratePerVisit}
-                      onChange={(e) => setRatePerVisit(parseInt(e.target.value) || 0)}
+                      onChange={(e) => setRatePerVisit(e.target.value === "" ? "" : Number(e.target.value))}
+                      placeholder="e.g. 300"
                       className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none"
                     />
                   </div>

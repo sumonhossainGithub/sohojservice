@@ -131,6 +131,26 @@ export const instantBookings = pgTable("instant_bookings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const serviceLocations = pgTable("service_locations", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  nameEn: text("name_en").notNull(),
+  nameBn: text("name_bn").notNull(),
+  district: text("district").notNull(),
+  division: text("division").notNull().default("Dhaka"),
+  lat: doublePrecision("lat"),
+  lng: doublePrecision("lng"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const platformSettings = pgTable("platform_settings", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Relations (so Drizzle's query API can do nested selects, e.g. booking.professional.user)
 export const usersRelations = relations(users, ({ one, many }) => ({
   professional: one(professionalProfiles, {

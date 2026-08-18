@@ -238,12 +238,13 @@ export function calculateDistanceKm(
  */
 export function findNearestLocation(
   lat: number,
-  lng: number
+  lng: number,
+  locationsList: BDLocation[] = BANGLADESH_LOCATIONS
 ): { location: BDLocation; distanceKm: number } | null {
   let closest: BDLocation | null = null;
   let minDistance = Infinity;
 
-  for (const loc of BANGLADESH_LOCATIONS) {
+  for (const loc of locationsList) {
     if (loc.lat != null && loc.lng != null) {
       const d = calculateDistanceKm(lat, lng, loc.lat, loc.lng);
       if (d < minDistance) {

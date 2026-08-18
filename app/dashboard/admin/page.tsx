@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import ProfilePhoto from "@/components/ProfilePhoto";
 import BangladeshUpazilaInput from "@/components/BangladeshUpazilaInput";
 
@@ -69,7 +70,54 @@ type AdminCategory = {
   proCount?: number;
 };
 
-type AdminTab = "instantBookings" | "professionals" | "bookings" | "users" | "completedTasks" | "categories";
+export type AdminLocation = {
+  id: string;
+  nameEn: string;
+  nameBn: string;
+  district: string;
+  division: string;
+  lat: number | null;
+  lng: number | null;
+  isActive: boolean;
+  isCustom: boolean;
+  createdAt?: string;
+};
+
+type AdminReview = {
+  id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  author: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    photoUrl: string | null;
+  };
+  professional: {
+    id: string;
+    name: string;
+    categoryName: string;
+    area: string;
+    city: string;
+    photoUrl: string | null;
+  };
+};
+
+type AdminTab =
+  | "overview"
+  | "instantBookings"
+  | "completedTasks"
+  | "professionals"
+  | "bookings"
+  | "users"
+  | "reviews"
+  | "announcements"
+  | "settings"
+  | "categories"
+  | "locations";
+
 type TimeframeFilter = "ALL" | "TODAY" | "THIS_WEEK" | "THIS_MONTH" | "THIS_YEAR";
 
 type ProfessionalDetails = {
@@ -138,114 +186,61 @@ const ICON_THEMES = [
   { id: "wrench", emoji: "🔧", label: "Wrench / Repair" },
   { id: "tool", emoji: "🛠️", label: "Tools / Workshop" },
   { id: "hammer", emoji: "🔨", label: "Hammer / Carpenter" },
-  { id: "saw", emoji: "🪚", label: "Saw / Carpentry" },
-  { id: "axe", emoji: "🪓", label: "Axe / Woodcutter" },
-  { id: "screwdriver", emoji: "🪛", label: "Screwdriver / Hardware" },
-  { id: "nut-bolt", emoji: "🔩", label: "Nut & Bolt / Fasteners" },
-  { id: "gear", emoji: "⚙️", label: "Gear / Machinery" },
-  { id: "ladder", emoji: "🪜", label: "Ladder / Scaffolding" },
-  { id: "brick", emoji: "🧱", label: "Bricks / Masonry" },
+  { id: "screwdriver", emoji: "🪛", label: "Screwdriver / Tech" },
+  { id: "drill", emoji: "🔩", label: "Drill / Fasteners" },
+  { id: "paint", emoji: "🖌️", label: "Paint Brush / Painter" },
+  { id: "roller", emoji: "🎨", label: "Paint Roller / Art" },
+  { id: "brick", emoji: "🧱", label: "Masonry / Brickwork" },
+  { id: "construction", emoji: "🚧", label: "Construction Barrier" },
+  { id: "hard-hat", emoji: "👷", label: "Contractor / Worker" },
 
-  // Electricity, Power & Solar
-  { id: "zap", emoji: "⚡", label: "Electric / Power" },
-  { id: "battery-charging", emoji: "🔋", label: "Battery / IPS" },
-  { id: "plug", emoji: "🔌", label: "Electric Plug" },
-  { id: "bulb", emoji: "💡", label: "Lightbulb / Lighting" },
-  { id: "flashlight", emoji: "🔦", label: "Flashlight / Emergency" },
-  { id: "sun", emoji: "☀️", label: "Solar Energy" },
-  { id: "generator", emoji: "🪫", label: "Inverter / Generator" },
+  // Electricity, Solar, Cooling & Plumbing
+  { id: "zap", emoji: "⚡", label: "Electrician / Power" },
+  { id: "plug", emoji: "🔌", label: "Electric Plug / Socket" },
+  { id: "battery", emoji: "🔋", label: "IPS / Inverter Battery" },
+  { id: "solar", emoji: "☀️", label: "Solar Energy & Panels" },
+  { id: "lightbulb", emoji: "💡", label: "Lighting & Fixtures" },
+  { id: "droplet", emoji: "💧", label: "Plumber / Water Drop" },
+  { id: "tap", emoji: "🚰", label: "Water Tap / Pipe" },
+  { id: "snowflake", emoji: "❄️", label: "AC & Refrigerator" },
+  { id: "wind", emoji: "💨", label: "Fan & Ventilation" },
+  { id: "fire", emoji: "🔥", label: "Gas Stove / Burner" },
+  { id: "gear", emoji: "⚙️", label: "Motor & Generator" },
 
-  // Plumbing, Water & Gas
-  { id: "droplet", emoji: "💧", label: "Plumbing / Water" },
-  { id: "filter", emoji: "🚰", label: "Water Filter / Purifier" },
-  { id: "bath", emoji: "🛁", label: "Bathroom / Tub" },
-  { id: "shower", emoji: "🚿", label: "Shower / Sanitary" },
-  { id: "toilet", emoji: "🚽", label: "Toilet / Drainage" },
-  { id: "flame", emoji: "🔥", label: "Gas Stove / Burner" },
-  { id: "extinguisher", emoji: "🧯", label: "Fire Safety" },
+  // Tech, Electronics & Security
+  { id: "tv", emoji: "📺", label: "Television & Audio" },
+  { id: "camera", emoji: "📷", label: "CCTV / Security Camera" },
+  { id: "phone", emoji: "📱", label: "Mobile Repair" },
+  { id: "laptop", emoji: "💻", label: "Computer / Laptop" },
+  { id: "wifi", emoji: "📶", label: "WiFi & Internet Tech" },
+  { id: "printer", emoji: "🖨️", label: "Printer & Office Tech" },
+  { id: "satellite", emoji: "📡", label: "Dish / Cable TV" },
+  { id: "shield", emoji: "🛡️", label: "Security & Guard" },
 
-  // Cooling, Air & Electronics
-  { id: "wind", emoji: "💨", label: "AC Cooling / Air" },
-  { id: "snowflake", emoji: "❄️", label: "Fridge / Deep Freeze" },
-  { id: "fan", emoji: "🪭", label: "Fan / Ventilation" },
-  { id: "tv", emoji: "📺", label: "TV / Television" },
-  { id: "radio", emoji: "📻", label: "Radio / Audio" },
-  { id: "washing-machine", emoji: "🧺", label: "Laundry / Washing" },
-
-  // Cleaning, Hygiene & Pest Control
-  { id: "sparkles", emoji: "✨", label: "Deep Cleaning" },
-  { id: "broom", emoji: "🧹", label: "Broom / Sweeping" },
-  { id: "sponge", emoji: "🧽", label: "Sponge / Scrub" },
-  { id: "soap", emoji: "🧼", label: "Soap / Sanitization" },
-  { id: "bucket", emoji: "🪣", label: "Bucket / Mopping" },
+  // Cleaning, Hygiene & Home Care
+  { id: "sparkles", emoji: "✨", label: "Cleaning & Housekeeping" },
+  { id: "broom", emoji: "🧹", label: "Broom / Deep Clean" },
+  { id: "soap", emoji: "🧼", label: "Sanitization & Wash" },
+  { id: "bug", emoji: "🪲", label: "Pest Control & Spray" },
   { id: "trash", emoji: "🗑️", label: "Waste / Septic Tank" },
-  { id: "shield", emoji: "🛡️", label: "Pest Control / Safety" },
-  { id: "bug", emoji: "🪲", label: "Termite & Bug Control" },
 
-  // Painting, Furniture & Interior
-  { id: "paintbrush", emoji: "🖌️", label: "Paintbrush / Painter" },
-  { id: "palette", emoji: "🎨", label: "Art & Colors" },
-  { id: "couch", emoji: "🛋️", label: "Furniture / Sofa" },
-  { id: "chair", emoji: "🪑", label: "Chair / Woodwork" },
-  { id: "bed", emoji: "🛏️", label: "Bed / Interior" },
-  { id: "door", emoji: "🚪", label: "Door / Fittings" },
-  { id: "window", emoji: "🪟", label: "Window & Glass" },
-  { id: "mirror", emoji: "🪞", label: "Mirror / Glass Work" },
-
-  // Tech, Computers & Security
-  { id: "smartphone", emoji: "📱", label: "Mobile Repair" },
-  { id: "monitor", emoji: "💻", label: "Computer / Laptop" },
-  { id: "desktop", emoji: "🖥️", label: "Desktop PC / Server" },
-  { id: "printer", emoji: "🖨️", label: "Printer / Copier" },
-  { id: "keyboard", emoji: "⌨️", label: "Keyboard / Tech" },
-  { id: "wifi", emoji: "📶", label: "WiFi / Network" },
-  { id: "satellite", emoji: "📡", label: "Dish / Antenna" },
-  { id: "camera", emoji: "📷", label: "CCTV / Camera" },
-  { id: "aperture", emoji: "📸", label: "Photography / Video" },
-  { id: "lock", emoji: "🔒", label: "Locksmith / Key" },
-  { id: "key", emoji: "🔑", label: "Key Maker" },
-  { id: "bell", emoji: "🔔", label: "Doorbell / Intercom" },
-
-  // Education, Beauty & Lifestyle
-  { id: "book-open", emoji: "📖", label: "Tutor / Education" },
-  { id: "grad-cap", emoji: "🎓", label: "Coaching / Academy" },
-  { id: "pencil", emoji: "✏️", label: "Drawing & Writing" },
-  { id: "scissors", emoji: "✂️", label: "Salon / Hair Cut" },
-  { id: "razor", emoji: "🪒", label: "Barber / Grooming" },
-  { id: "spa", emoji: "💆", label: "Spa & Massage" },
-  { id: "dress", emoji: "👗", label: "Tailor / Dressmaker" },
-  { id: "sewing", emoji: "🧵", label: "Sewing & Stitching" },
-  { id: "needle", emoji: "🪡", label: "Needle & Thread" },
-  { id: "baby", emoji: "👶", label: "Babysitter / Nanny" },
-  { id: "stethoscope", emoji: "🩺", label: "Home Nurse / Health" },
-  { id: "pill", emoji: "💊", label: "Medicine / Pharmacy" },
-
-  // Transport, Vehicles & Moving
-  { id: "truck", emoji: "🚚", label: "Movers & Shifting" },
-  { id: "car", emoji: "🚗", label: "Car Repair & Wash" },
-  { id: "motorcycle", emoji: "🏍️", label: "Motorbike / Bike Service" },
-  { id: "bicycle", emoji: "🚲", label: "Cycle Repair" },
-  { id: "cng", emoji: "🛺", label: "Auto Rickshaw" },
-  { id: "bus", emoji: "🚌", label: "Bus / Transport" },
-  { id: "oil", emoji: "🛢️", label: "Engine Oil / Fuel" },
+  // Transport, Moving & Vehicles
+  { id: "truck", emoji: "🚚", label: "Movers & Packers" },
+  { id: "motorcycle", emoji: "🏍️", label: "Motorbike Mechanic" },
+  { id: "car", emoji: "🚗", label: "Car & Auto Repair" },
   { id: "package", emoji: "📦", label: "Parcel & Courier" },
 
   // Gardening, Plants & Outdoors
   { id: "plant", emoji: "🪴", label: "Potted Plant / Indoor" },
   { id: "tree", emoji: "🌳", label: "Gardener / Tree Cutting" },
   { id: "flower", emoji: "🌸", label: "Flower & Landscape" },
-  { id: "seedling", emoji: "🌱", label: "Nursery / Plants" },
 
-  // Food, Catering & Home
+  // Food, Catering & Lifestyle
   { id: "chef", emoji: "👨‍🍳", label: "Cook / Chef" },
-  { id: "pot", emoji: "🍲", label: "Catering / Food" },
-  { id: "knife", emoji: "🔪", label: "Kitchen Appliances" },
-  { id: "cake", emoji: "🎂", label: "Baker / Pastry" },
-  { id: "microphone", emoji: "🎤", label: "Sound System / DJ" },
-  { id: "balloon", emoji: "🎈", label: "Party & Event Decor" },
+  { id: "book", emoji: "📖", label: "Home Tutor / Teacher" },
+  { id: "scissors", emoji: "✂️", label: "Home Salon / Barber" },
+  { id: "photo", emoji: "📸", label: "Photographer / Video" },
   { id: "home", emoji: "🏠", label: "House Renovation" },
-  { id: "building", emoji: "🏢", label: "Commercial Builder" },
-  { id: "briefcase", emoji: "💼", label: "Contractor / Services" },
 ];
 
 function getCategoryEmoji(icon?: string, slug?: string) {
@@ -284,24 +279,81 @@ function getCategoryEmoji(icon?: string, slug?: string) {
   return "📂";
 }
 
+function exportToCsv(filename: string, rows: string[][]) {
+  const processRow = (row: string[]) =>
+    row
+      .map((val) => {
+        let text = (val || "").toString().replace(/"/g, '""');
+        if (text.search(/("|,|\n)/g) >= 0) text = `"${text}"`;
+        return text;
+      })
+      .join(",");
+
+  const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + rows.map(processRow).join("\n");
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 export default function AdminDashboard() {
   const { user, status } = useAuth();
   const router = useRouter();
+
+  // Core Data
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
   const [instantBookingsList, setInstantBookingsList] = useState<InstantBookingItem[]>([]);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [categoriesList, setCategoriesList] = useState<AdminCategory[]>([]);
+  const [locationsList, setLocationsList] = useState<AdminLocation[]>([]);
+  const [reviewsList, setReviewsList] = useState<AdminReview[]>([]);
+  const [reviewsStats, setReviewsStats] = useState({
+    total: 0,
+    avgRating: 0,
+    rating5: 0,
+    rating4: 0,
+    rating3: 0,
+    rating2: 0,
+    rating1: 0,
+  });
+
+  // Analytics & Settings
+  const [analyticsData, setAnalyticsData] = useState<{
+    financials?: { estimatedGmv: number; avgTicket: number; completedVolume: number };
+    operations?: { totalJobs: number; totalDone: number; activeInstant: number; fulfillmentRate: number };
+    people?: { totalUsers: number; customerCount: number; proUserCount: number; verifiedPros: number; pendingPros: number };
+    topCategories?: { name: string; count: number }[];
+    topAreas?: { name: string; count: number }[];
+  } | null>(null);
+
+  const [settings, setSettings] = useState<Record<string, string>>({
+    emergency_hotline: "01700-000000",
+    support_whatsapp: "8801700000000",
+    support_email: "support@sohojservice.com",
+    banner_announcement_text: "⚡ 24/7 Monsoon Emergency Electrician & Plumbing Support active in Sirajganj",
+    banner_announcement_active: "true",
+    banner_announcement_type: "emergency",
+    default_visiting_fee: "300",
+    maintenance_mode: "false",
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  // Navigation & Filtering
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<AdminTab>("instantBookings");
+  const [tab, setTab] = useState<AdminTab>("overview");
   const [search, setSearch] = useState("");
   const [showPendingOnly, setShowPendingOnly] = useState(false);
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
   const [timeframe, setTimeframe] = useState<TimeframeFilter>("ALL");
+  const [selectedReviewRating, setSelectedReviewRating] = useState<number | "ALL">("ALL");
+  const [selectedDivisionFilter, setSelectedDivisionFilter] = useState<string>("ALL");
   const [actionMessage, setActionMessage] = useState("");
-  const [detailsLoading, setDetailsLoading] = useState(false);
 
-  // Category Modals State
+  // Category Direct Entry State
   const [newCatNameEn, setNewCatNameEn] = useState("");
   const [newCatNameBn, setNewCatNameBn] = useState("");
   const [newCatSlug, setNewCatSlug] = useState("");
@@ -317,7 +369,21 @@ export default function AdminDashboard() {
   const [editCatError, setEditCatError] = useState("");
   const [savingCategory, setSavingCategory] = useState(false);
 
-  // Selected Professional Detail Modal State
+  // Area & Location Direct Entry State
+  const [locationsLoading, setLocationsLoading] = useState(false);
+  const [editingLocation, setEditingLocation] = useState<AdminLocation | null>(null);
+  const [locNameEn, setLocNameEn] = useState("");
+  const [locNameBn, setLocNameBn] = useState("");
+  const [locDistrict, setLocDistrict] = useState("Sirajganj");
+  const [locDivision, setLocDivision] = useState("Rajshahi");
+  const [locLat, setLocLat] = useState<number | "">("");
+  const [locLng, setLocLng] = useState<number | "">("");
+  const [locIsActive, setLocIsActive] = useState(true);
+  const [savingLocation, setSavingLocation] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const [gpsDetecting, setGpsDetecting] = useState(false);
+
+  // Professional Detail Modal State
   const [selectedProfessional, setSelectedProfessional] = useState<ProfessionalDetails | null>(null);
   const [editingProBio, setEditingProBio] = useState("");
   const [editingProArea, setEditingProArea] = useState("");
@@ -325,8 +391,9 @@ export default function AdminDashboard() {
   const [editingProExp, setEditingProExp] = useState(0);
   const [editingProRate, setEditingProRate] = useState<number | "">("");
   const [savingPro, setSavingPro] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
-  // Selected User Detail Modal State
+  // User Detail Modal State
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [editingUserName, setEditingUserName] = useState("");
   const [editingUserPhone, setEditingUserPhone] = useState("");
@@ -337,7 +404,7 @@ export default function AdminDashboard() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
 
-  // Lock body scroll on mobile and desktop when detail modals are open
+  // Lock body scroll on detail modals
   useEffect(() => {
     const isAnyModalOpen = Boolean(selectedProfessional || selectedUser);
     if (isAnyModalOpen) {
@@ -355,20 +422,66 @@ export default function AdminDashboard() {
       const res = await fetch("/api/admin/categories", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) {
-          setCategoriesList(data);
-          return;
-        }
-      }
-      const fallback = await fetch("/api/categories", { cache: "no-store" });
-      if (fallback.ok) {
-        const data = await fallback.json();
-        if (Array.isArray(data)) {
-          setCategoriesList(data.map((c: any) => ({ ...c, proCount: 0 })));
-        }
+        if (Array.isArray(data)) setCategoriesList(data);
       }
     } catch (err) {
       console.error("Error loading categories:", err);
+    }
+  }
+
+  async function loadLocations() {
+    setLocationsLoading(true);
+    try {
+      const res = await fetch("/api/admin/locations", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data?.locations)) setLocationsList(data.locations);
+      }
+    } catch (err) {
+      console.error("Error loading locations:", err);
+    } finally {
+      setLocationsLoading(false);
+    }
+  }
+
+  async function loadReviews() {
+    try {
+      const res = await fetch("/api/admin/reviews", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data?.reviews)) {
+          setReviewsList(data.reviews);
+          if (data.stats) setReviewsStats(data.stats);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading reviews:", err);
+    }
+  }
+
+  async function loadSettings() {
+    try {
+      const res = await fetch("/api/admin/settings", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && typeof data === "object" && !Array.isArray(data)) {
+          setSettings(data as Record<string, string>);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading settings:", err);
+    }
+  }
+
+  async function loadAnalytics() {
+    try {
+      const res = await fetch("/api/admin/analytics", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setAnalyticsData(data);
+      }
+    } catch (err) {
+      console.error("Error loading analytics:", err);
     }
   }
 
@@ -387,21 +500,43 @@ export default function AdminDashboard() {
       fetch("/api/admin/users").then((r) => (r.ok ? r.json() : [])),
       fetch("/api/instant-bookings").then((r) => (r.ok ? r.json() : { instantBookings: [] })),
       fetch("/api/admin/categories").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/admin/locations").then((r) => (r.ok ? r.json() : { locations: [] })),
+      fetch("/api/admin/reviews").then((r) => (r.ok ? r.json() : { reviews: [] })),
+      fetch("/api/admin/settings").then((r) => (r.ok ? r.json() : {})),
+      fetch("/api/admin/analytics").then((r) => (r.ok ? r.json() : null)),
     ])
-      .then(([proData, bookingData, userData, instantData, categoryData]) => {
-        setProfessionals(Array.isArray(proData) ? proData : []);
-        setBookings(Array.isArray(bookingData) ? bookingData : []);
-        setUsers(Array.isArray(userData) ? userData : []);
-        setInstantBookingsList(Array.isArray(instantData?.instantBookings) ? instantData.instantBookings : []);
-        if (Array.isArray(categoryData) && categoryData.length > 0) {
-          setCategoriesList(categoryData);
-        } else {
-          loadCategories();
+      .then(
+        ([
+          proData,
+          bookingData,
+          userData,
+          instantData,
+          categoryData,
+          locationData,
+          reviewData,
+          settingsData,
+          analyticsResp,
+        ]) => {
+          setProfessionals(Array.isArray(proData) ? proData : []);
+          setBookings(Array.isArray(bookingData) ? bookingData : []);
+          setUsers(Array.isArray(userData) ? userData : []);
+          setInstantBookingsList(Array.isArray(instantData?.instantBookings) ? instantData.instantBookings : []);
+          if (Array.isArray(categoryData)) setCategoriesList(categoryData);
+          if (Array.isArray(locationData?.locations)) setLocationsList(locationData.locations);
+          if (Array.isArray(reviewData?.reviews)) {
+            setReviewsList(reviewData.reviews);
+            if (reviewData.stats) setReviewsStats(reviewData.stats);
+          }
+          if (settingsData && typeof settingsData === "object" && !Array.isArray(settingsData)) {
+            setSettings(settingsData as Record<string, string>);
+          }
+          if (analyticsResp) setAnalyticsData(analyticsResp);
         }
-      })
+      )
       .finally(() => setLoading(false));
   }, []);
 
+  // Quick Action Handlers
   async function toggleVerify(id: string, isVerified: boolean) {
     setActionMessage("");
     await fetch(`/api/admin/professionals/${id}`, {
@@ -417,11 +552,7 @@ export default function AdminDashboard() {
         current ? { ...current, isVerified: !isVerified } : current
       );
     }
-    setActionMessage(
-      !isVerified
-        ? "Professional verified and published."
-        : "Professional verification removed."
-    );
+    setActionMessage(!isVerified ? "✓ Professional verified and published." : "Professional verification removed.");
   }
 
   async function toggleAvailability(id: string, isAvailable: boolean) {
@@ -439,21 +570,19 @@ export default function AdminDashboard() {
         current ? { ...current, isAvailable: !isAvailable } : current
       );
     }
-    setActionMessage(
-      !isAvailable ? "Set to available for bookings." : "Set to unavailable."
-    );
+    setActionMessage(!isAvailable ? "Set to available for jobs." : "Set to unavailable.");
   }
 
   async function openProfessionalDetails(id: string) {
     setDetailsLoading(true);
     const res = await fetch(`/api/admin/professionals/${id}`);
     if (res.ok) {
-      const data = (await res.json()) as ProfessionalDetails;
+      const data: ProfessionalDetails = await res.json();
       setSelectedProfessional(data);
       setEditingProBio(data.bio || "");
-      setEditingProArea(data.area || "");
-      setEditingProCity(data.city || "");
-      setEditingProExp(data.yearsExperience || 0);
+      setEditingProArea(data.area);
+      setEditingProCity(data.city);
+      setEditingProExp(data.yearsExperience);
       setEditingProRate(data.ratePerVisit ?? "");
     }
     setDetailsLoading(false);
@@ -462,22 +591,30 @@ export default function AdminDashboard() {
   async function saveProfessionalEdits() {
     if (!selectedProfessional) return;
     setSavingPro(true);
-    const payload = {
-      bio: editingProBio,
-      area: editingProArea,
-      city: editingProCity,
-      yearsExperience: Number(editingProExp),
-      ratePerVisit: editingProRate === "" ? null : Number(editingProRate),
-    };
-
     const res = await fetch(`/api/admin/professionals/${selectedProfessional.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        bio: editingProBio,
+        area: editingProArea,
+        city: editingProCity,
+        yearsExperience: editingProExp,
+        ratePerVisit: editingProRate === "" ? null : Number(editingProRate),
+      }),
     });
-
     setSavingPro(false);
     if (res.ok) {
+      setProfessionals((prev) =>
+        prev.map((p) =>
+          p.id === selectedProfessional.id
+            ? {
+                ...p,
+                area: editingProArea,
+                city: editingProCity,
+              }
+            : p
+        )
+      );
       setSelectedProfessional((prev) =>
         prev
           ? {
@@ -485,17 +622,10 @@ export default function AdminDashboard() {
               bio: editingProBio,
               area: editingProArea,
               city: editingProCity,
-              yearsExperience: Number(editingProExp),
+              yearsExperience: editingProExp,
               ratePerVisit: editingProRate === "" ? null : Number(editingProRate),
             }
           : null
-      );
-      setProfessionals((prev) =>
-        prev.map((p) =>
-          p.id === selectedProfessional.id
-            ? { ...p, area: editingProArea, city: editingProCity }
-            : p
-        )
       );
       setActionMessage("Professional details saved successfully.");
     }
@@ -580,8 +710,7 @@ export default function AdminDashboard() {
     setActionMessage("Booking deleted.");
   }
 
-  // Instant booking actions
-  async function updateInstantBookingStatus(id: string, newStatus: InstantBookingItem["status"]) {
+  async function updateInstantStatus(id: string, newStatus: InstantBookingItem["status"]) {
     setActionMessage("");
     const res = await fetch(`/api/instant-bookings/${id}`, {
       method: "PATCH",
@@ -590,43 +719,42 @@ export default function AdminDashboard() {
     });
     if (res.ok) {
       setInstantBookingsList((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, status: newStatus, updatedAt: new Date().toISOString() } : item))
+        prev.map((b) => (b.id === id ? { ...b, status: newStatus, updatedAt: new Date().toISOString() } : b))
       );
-      setActionMessage(newStatus === "COMPLETED" ? "🎉 Instant booking marked as DONE & completed!" : `Instant booking status set to ${newStatus}.`);
+      setActionMessage(newStatus === "COMPLETED" ? "🎉 Instant booking marked as COMPLETED and archived!" : `Instant booking marked as ${newStatus}`);
     }
   }
 
-  async function assignInstantBookingPro(id: string, proId: string) {
+  async function assignInstantProfessional(id: string, professionalId: string | null) {
     setActionMessage("");
     const res = await fetch(`/api/instant-bookings/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ assignedProfessionalId: proId }),
+      body: JSON.stringify({
+        assignedProfessionalId: professionalId,
+        status: professionalId ? "ASSIGNED" : "NEW",
+      }),
     });
     if (res.ok) {
-      const assignedPro = professionals.find((p) => p.id === proId);
+      const pro = professionalId ? professionals.find((p) => p.id === professionalId) : null;
       setInstantBookingsList((prev) =>
-        prev.map((item) =>
-          item.id === id
+        prev.map((b) =>
+          b.id === id
             ? {
-                ...item,
-                assignedProfessionalId: proId,
-                assignedProfessional: assignedPro
-                  ? {
-                      user: { name: assignedPro.name, phone: null },
-                      category: { nameEn: assignedPro.category.nameEn },
-                    }
-                  : null,
-                status: item.status === "NEW" ? "ASSIGNED" : item.status,
+                ...b,
+                assignedProfessionalId: professionalId,
+                status: professionalId ? "ASSIGNED" : "NEW",
+                assignedProfessional: pro ? { user: { name: pro.name, phone: null }, category: { nameEn: pro.category.nameEn } } : null,
+                updatedAt: new Date().toISOString(),
               }
-            : item
+            : b
         )
       );
-      setActionMessage("Assigned professional to instant request.");
+      setActionMessage(professionalId ? `Technician assigned to booking #${id.slice(-6)}` : "Assignment removed.");
     }
   }
 
-  async function saveInstantBookingNote(id: string) {
+  async function saveInstantNote(id: string) {
     const res = await fetch(`/api/instant-bookings/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -634,42 +762,152 @@ export default function AdminDashboard() {
     });
     if (res.ok) {
       setInstantBookingsList((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, adminNotes: noteText } : item))
+        prev.map((b) => (b.id === id ? { ...b, adminNotes: noteText } : b))
       );
       setEditingNoteId(null);
-      setActionMessage("Note saved.");
+      setActionMessage("Admin notes updated.");
     }
   }
 
-  // Category Actions
+  // Location Handlers
+  function openEditLocation(loc: AdminLocation) {
+    setEditingLocation(loc);
+    setLocNameEn(loc.nameEn);
+    setLocNameBn(loc.nameBn);
+    setLocDistrict(loc.district);
+    setLocDivision(loc.division);
+    setLocLat(loc.lat !== null && loc.lat !== undefined ? loc.lat : "");
+    setLocLng(loc.lng !== null && loc.lng !== undefined ? loc.lng : "");
+    setLocIsActive(loc.isActive);
+    setLocationError("");
+    const el = document.getElementById("location-entry-section");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function resetLocationForm() {
+    setEditingLocation(null);
+    setLocNameEn("");
+    setLocNameBn("");
+    setLocDistrict("Sirajganj");
+    setLocDivision("Rajshahi");
+    setLocLat("");
+    setLocLng("");
+    setLocIsActive(true);
+    setLocationError("");
+  }
+
+  async function handleSaveLocation(e: React.FormEvent) {
+    e.preventDefault();
+    if (!locNameEn.trim() || !locNameBn.trim() || !locDistrict.trim()) {
+      setLocationError("English Name, Bangla Name, and District are required.");
+      return;
+    }
+    setSavingLocation(true);
+    setLocationError("");
+
+    const payload = {
+      nameEn: locNameEn.trim(),
+      nameBn: locNameBn.trim(),
+      district: locDistrict.trim(),
+      division: locDivision.trim() || "Rajshahi",
+      lat: locLat === "" ? null : Number(locLat),
+      lng: locLng === "" ? null : Number(locLng),
+      isActive: locIsActive,
+    };
+
+    try {
+      if (editingLocation) {
+        const res = await fetch(`/api/admin/locations/${editingLocation.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        setSavingLocation(false);
+        if (!res.ok) {
+          setLocationError(data.error || "Failed to update location");
+          return;
+        }
+        setActionMessage(`Location "${locNameEn}" updated successfully.`);
+      } else {
+        const res = await fetch("/api/admin/locations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        setSavingLocation(false);
+        if (!res.ok) {
+          setLocationError(data.error || "Failed to create location");
+          return;
+        }
+        setActionMessage(`Location "${locNameEn}" added to system.`);
+      }
+      resetLocationForm();
+      loadLocations();
+    } catch {
+      setSavingLocation(false);
+      setLocationError("Network error. Please try again.");
+    }
+  }
+
+  async function handleDeleteLocation(id: string, name: string) {
+    if (!confirm(`Are you sure you want to delete / reset area "${name}"?`)) return;
+    try {
+      const res = await fetch(`/api/admin/locations/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setActionMessage(`Location "${name}" removed/reset.`);
+        loadLocations();
+      }
+    } catch {
+      setActionMessage("Error deleting location.");
+    }
+  }
+
+  function handleDetectCurrentGPS() {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser.");
+      return;
+    }
+    setGpsDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocLat(Math.round(pos.coords.latitude * 10000) / 10000);
+        setLocLng(Math.round(pos.coords.longitude * 10000) / 10000);
+        setGpsDetecting(false);
+      },
+      () => {
+        setGpsDetecting(false);
+        setLocationError("Could not retrieve GPS coordinates. Please allow location access.");
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  }
+
+  // Category Handlers
   async function handleCreateCategory(e: React.FormEvent) {
     e.preventDefault();
+    if (!newCatNameEn.trim() || !newCatNameBn.trim()) {
+      setCreateCatError("Both English and Bangla names are required.");
+      return;
+    }
+    setCreatingCategory(true);
     setCreateCatError("");
 
-    if (!newCatNameEn.trim()) {
-      setCreateCatError("Please enter the English name.");
-      return;
-    }
-    if (!newCatNameBn.trim()) {
-      setCreateCatError("Please enter the Bangla name.");
-      return;
-    }
+    let cleanSlug = (newCatSlug && newCatSlug.trim().length > 0 ? newCatSlug : newCatNameEn)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
 
-    setCreatingCategory(true);
     try {
-      const generatedSlug = (newCatSlug || newCatNameEn)
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-
       const res = await fetch("/api/admin/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nameEn: newCatNameEn.trim(),
           nameBn: newCatNameBn.trim(),
-          slug: generatedSlug,
+          slug: cleanSlug,
           icon: newCatIcon || "wrench",
         }),
       });
@@ -682,15 +920,12 @@ export default function AdminDashboard() {
         return;
       }
 
-      setCategoriesList((prev) =>
-        [...prev, { ...data, proCount: 0 }].sort((a, b) => a.nameEn.localeCompare(b.nameEn))
-      );
+      setCategoriesList((prev) => [...prev, data].sort((a, b) => a.nameEn.localeCompare(b.nameEn)));
       setNewCatNameEn("");
       setNewCatNameBn("");
       setNewCatSlug("");
       setNewCatIcon("wrench");
-      setCreateCatError("");
-      setActionMessage("🎉 Service Category created successfully!");
+      setActionMessage(`Category "${data.nameEn}" added successfully.`);
       loadCategories();
     } catch {
       setCreatingCategory(false);
@@ -699,43 +934,33 @@ export default function AdminDashboard() {
   }
 
   function openEditCategoryModal(cat: AdminCategory) {
-    setTab("categories");
     setEditingCategory(cat);
     setEditCatNameEn(cat.nameEn);
     setEditCatNameBn(cat.nameBn);
     setEditCatSlug(cat.slug);
     setEditCatIcon(cat.icon || "wrench");
     setEditCatError("");
-    setTimeout(() => {
-      const el = document.getElementById("category-entry-section");
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 60);
+    const el = document.getElementById("category-entry-section");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   async function handleSaveCategoryEdits(e: React.FormEvent) {
     e.preventDefault();
     if (!editingCategory) return;
+    if (!editCatNameEn.trim() || !editCatNameBn.trim()) {
+      setEditCatError("Both English and Bangla names are required.");
+      return;
+    }
+    setSavingCategory(true);
     setEditCatError("");
 
-    if (!editCatNameEn.trim()) {
-      setEditCatError("Please enter the English name.");
-      return;
-    }
-    if (!editCatNameBn.trim()) {
-      setEditCatError("Please enter the Bangla name.");
-      return;
-    }
+    let cleanSlug = (editCatSlug && editCatSlug.trim().length > 0 ? editCatSlug : editCatNameEn)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
 
-    setSavingCategory(true);
     try {
-      const cleanSlug = (editCatSlug || editCatNameEn)
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-
       const res = await fetch(`/api/admin/categories/${editingCategory.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -756,9 +981,7 @@ export default function AdminDashboard() {
       }
 
       setCategoriesList((prev) =>
-        prev
-          .map((c) => (c.id === editingCategory.id ? { ...c, ...data } : c))
-          .sort((a, b) => a.nameEn.localeCompare(b.nameEn))
+        prev.map((c) => (c.id === editingCategory.id ? { ...c, ...data } : c)).sort((a, b) => a.nameEn.localeCompare(b.nameEn))
       );
       setEditingCategory(null);
       setEditCatError("");
@@ -788,8 +1011,104 @@ export default function AdminDashboard() {
     }
   }
 
+  // Review Handlers
+  async function handleDeleteReview(id: string) {
+    if (!confirm("Are you sure you want to remove this customer review?")) return;
+    try {
+      const res = await fetch(`/api/admin/reviews?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setReviewsList((prev) => prev.filter((r) => r.id !== id));
+        setActionMessage("Review removed successfully.");
+        loadReviews();
+      }
+    } catch {
+      setActionMessage("Error deleting review.");
+    }
+  }
+
+  // Save System Settings Handler
+  async function handleSaveSettings(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      const data = await res.json();
+      setSavingSettings(false);
+      if (res.ok) {
+        if (data.settings) setSettings(data.settings);
+        setActionMessage("System Settings & Announcements saved successfully.");
+      }
+    } catch {
+      setSavingSettings(false);
+      setActionMessage("Error saving settings.");
+    }
+  }
+
+  // CSV Exporters
+  function handleExportInstantCSV() {
+    const headers = [
+      "Booking ID",
+      "Date",
+      "Customer Name",
+      "Customer Phone",
+      "Service Category",
+      "Problem Description",
+      "Area",
+      "Address",
+      "Urgency",
+      "Status",
+      "Assigned Professional",
+      "Admin Notes",
+    ];
+    const rows = instantBookingsList.map((b) => [
+      b.id,
+      b.createdAt,
+      b.customerName,
+      b.customerPhone,
+      b.categoryName,
+      b.problemDescription,
+      b.area,
+      b.fullAddress,
+      b.urgency,
+      b.status,
+      b.assignedProfessional?.user?.name || "Unassigned",
+      b.adminNotes || "",
+    ]);
+    exportToCsv("sohojservice-instant-bookings.csv", [headers, ...rows]);
+  }
+
+  function handleExportProsCSV() {
+    const headers = ["Pro ID", "Name", "Category", "Area", "District", "Verified", "Available", "Lat", "Lng"];
+    const rows = professionals.map((p) => [
+      p.id,
+      p.name,
+      p.category?.nameEn || "",
+      p.area,
+      p.city,
+      p.isVerified ? "Yes" : "No",
+      p.isAvailable ? "Yes" : "No",
+      p.latitude?.toString() || "",
+      p.longitude?.toString() || "",
+    ]);
+    exportToCsv("sohojservice-professionals.csv", [headers, ...rows]);
+  }
+
+  function handleExportUsersCSV() {
+    const headers = ["User ID", "Name", "Email", "Phone", "Role", "Join Date"];
+    const rows = users.map((u) => [u.id, u.name, u.email, u.phone || "", u.role, u.createdAt]);
+    exportToCsv("sohojservice-users.csv", [headers, ...rows]);
+  }
+
   if (status !== "authenticated" || loading) {
-    return <div className="max-w-6xl mx-auto px-4 py-16 text-center text-sm font-semibold text-slate-700">Loading admin center...</div>;
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-16 text-center text-sm font-semibold text-slate-700">
+        Loading admin command center...
+      </div>
+    );
   }
 
   // Metric counts
@@ -797,26 +1116,9 @@ export default function AdminDashboard() {
   const pendingCount = professionals.filter((p) => !p.isVerified).length;
   const availableCount = professionals.filter((p) => p.isAvailable).length;
 
-  // Completed Tasks Aggregation
   const doneInstantList = instantBookingsList.filter((b) => b.status === "COMPLETED");
   const doneDirectList = bookings.filter((b) => b.status === "COMPLETED");
   const totalDoneCount = doneInstantList.length + doneDirectList.length;
-
-  const doneTodayCount =
-    doneInstantList.filter((b) => isDateToday(b.updatedAt || b.createdAt)).length +
-    doneDirectList.filter((b) => isDateToday(b.updatedAt || b.createdAt)).length;
-
-  const doneWeekCount =
-    doneInstantList.filter((b) => isDateThisWeek(b.updatedAt || b.createdAt)).length +
-    doneDirectList.filter((b) => isDateThisWeek(b.updatedAt || b.createdAt)).length;
-
-  const doneMonthCount =
-    doneInstantList.filter((b) => isDateThisMonth(b.updatedAt || b.createdAt)).length +
-    doneDirectList.filter((b) => isDateThisMonth(b.updatedAt || b.createdAt)).length;
-
-  const doneYearCount =
-    doneInstantList.filter((b) => isDateThisYear(b.updatedAt || b.createdAt)).length +
-    doneDirectList.filter((b) => isDateThisYear(b.updatedAt || b.createdAt)).length;
 
   // Filtered Lists
   const displayedInstantBookings = instantBookingsList.filter((b) =>
@@ -826,7 +1128,9 @@ export default function AdminDashboard() {
   );
 
   const displayedProfessionals = professionals.filter((p) => {
-    const matchesSearch = `${p.name} ${p.category.nameEn} ${p.area} ${p.city}`.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = `${p.name} ${p.category.nameEn} ${p.area} ${p.city}`
+      .toLowerCase()
+      .includes(search.toLowerCase());
     const matchesPending = !showPendingOnly || !p.isVerified;
     const matchesAvailable = !showAvailableOnly || p.isAvailable;
     return matchesSearch && matchesPending && matchesAvailable;
@@ -846,7 +1150,32 @@ export default function AdminDashboard() {
     `${c.nameEn} ${c.nameBn} ${c.slug}`.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Unified Completed Tasks List with timeframe filtering
+  const displayedLocations = locationsList.filter((l) => {
+    const query = search.toLowerCase();
+    const matchesSearch =
+      !query ||
+      l.nameEn.toLowerCase().includes(query) ||
+      l.nameBn.includes(search) ||
+      l.district.toLowerCase().includes(query) ||
+      l.division.toLowerCase().includes(query);
+
+    const matchesDivision =
+      selectedDivisionFilter === "ALL" ||
+      l.division.toLowerCase() === selectedDivisionFilter.toLowerCase();
+
+    return matchesSearch && matchesDivision;
+  });
+
+  const displayedReviews = reviewsList.filter((r) => {
+    const matchesRating = selectedReviewRating === "ALL" || r.rating === selectedReviewRating;
+    const matchesSearch =
+      !search ||
+      r.comment.toLowerCase().includes(search.toLowerCase()) ||
+      r.author.name.toLowerCase().includes(search.toLowerCase()) ||
+      r.professional.name.toLowerCase().includes(search.toLowerCase());
+    return matchesRating && matchesSearch;
+  });
+
   const allDoneTasks = [
     ...doneInstantList.map((item) => ({
       id: item.id,
@@ -878,100 +1207,174 @@ export default function AdminDashboard() {
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const filteredDoneTasks = allDoneTasks.filter((task) => {
-    const matchesSearch = `${task.customerName} ${task.phone || ""} ${task.category} ${task.location} ${task.note}`
-      .toLowerCase()
-      .includes(search.toLowerCase());
-
-    let matchesTimeframe = true;
-    if (timeframe === "TODAY") matchesTimeframe = isDateToday(task.date);
-    else if (timeframe === "THIS_WEEK") matchesTimeframe = isDateThisWeek(task.date);
-    else if (timeframe === "THIS_MONTH") matchesTimeframe = isDateThisMonth(task.date);
-    else if (timeframe === "THIS_YEAR") matchesTimeframe = isDateThisYear(task.date);
-
-    return matchesSearch && matchesTimeframe;
-  });
-
   return (
-    <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-10 space-y-5 sm:space-y-6 motion-enter">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
-        <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Admin Control Center
-          </h1>
-          <p className="text-xs text-slate-600 font-medium mt-0.5">
-            Full management: instant bookings, categories, 1-click completion archives, verified technicians, and users.
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8 space-y-6">
+      {/* Top Hero Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl shadow-xl shadow-slate-900/10">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🛡️</span>
+            <h1 className="font-display font-extrabold text-xl sm:text-2xl text-white tracking-tight">
+              Master Admin Control Center
+            </h1>
+            <span className="text-[10px] font-bold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 px-2.5 py-0.5 rounded-full uppercase">
+              Full Master Access
+            </span>
+          </div>
+          <p className="text-xs text-slate-300 font-medium">
+            Welcome back, <strong>{user?.name}</strong>. Manage dispatches, technicians, customers, system settings & data.
           </p>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+
+        {/* Quick Exporter & Shortcut Actions */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleExportInstantCSV}
+            className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3 py-2 rounded-xl border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+            title="Download Instant Bookings as CSV"
+          >
+            <span>📥</span>
+            <span>Export CSV</span>
+          </button>
+
           <button
             type="button"
             onClick={() => {
               setTab("categories");
-              setEditingCategory(null);
-              setCreateCatError("");
               setTimeout(() => {
                 const el = document.getElementById("category-entry-section");
-                if (el) {
-                  el.scrollIntoView({ behavior: "smooth", block: "start" });
-                }
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
               }, 60);
             }}
             className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
           >
             <span>➕</span>
-            <span>Add Category</span>
+            <span>Category</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setTab("locations");
+              resetLocationForm();
+              setTimeout(() => {
+                const el = document.getElementById("location-entry-section");
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }, 60);
+            }}
+            className="bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+          >
+            <span>📍</span>
+            <span>Area</span>
           </button>
         </div>
       </div>
 
       {actionMessage && (
-        <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs font-bold text-blue-950 flex items-center justify-between shadow-2xs">
+        <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-xs font-bold text-blue-950 flex items-center justify-between shadow-2xs motion-enter">
           <span className="break-words">ℹ️ {actionMessage}</span>
           <button onClick={() => setActionMessage("")} className="text-slate-400 hover:text-slate-700 cursor-pointer ml-2 shrink-0">✕</button>
         </div>
       )}
 
-      {/* Interactive Metric Cards: Clickable to Filter/Switch */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+      {/* Metric Cards Top Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-2.5">
+        <button
+          type="button"
+          onClick={() => {
+            setTab("overview");
+            setSearch("");
+            loadAnalytics();
+          }}
+          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md ${
+            tab === "overview" ? "bg-indigo-50/90 border-indigo-300 ring-2 ring-indigo-400" : "bg-white border-slate-200 hover:border-indigo-300"
+          }`}
+        >
+          <p className="text-[10px] font-bold text-indigo-800 uppercase tracking-wide truncate">📊 Overview</p>
+          <p className="font-display text-lg font-black text-slate-900 mt-0.5">Live KPI</p>
+          <span className="text-[9px] text-slate-400 font-semibold block">Dashboard →</span>
+        </button>
+
         <button
           type="button"
           onClick={() => {
             setTab("instantBookings");
             setSearch("");
-            setShowPendingOnly(false);
-            setShowAvailableOnly(false);
           }}
-          className={`p-3 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${
-            tab === "instantBookings"
-              ? "bg-amber-50/90 border-amber-300 ring-2 ring-amber-400"
-              : "bg-white border-slate-200 hover:border-amber-300"
+          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md ${
+            tab === "instantBookings" ? "bg-amber-50/90 border-amber-300 ring-2 ring-amber-400" : "bg-white border-slate-200 hover:border-amber-300"
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className="text-[11px] sm:text-xs font-bold text-amber-800 uppercase tracking-wide truncate">⚡ Instant</p>
+            <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wide truncate">⚡ Dispatches</p>
             {newInstantCount > 0 && <span className="h-2 w-2 rounded-full bg-red-500 animate-ping shrink-0" />}
           </div>
-          <p className="font-display text-xl sm:text-2xl font-black text-slate-900 mt-1">{newInstantCount}</p>
-          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Dispatches →</span>
+          <p className="font-display text-lg font-black text-slate-900 mt-0.5">{newInstantCount}</p>
+          <span className="text-[9px] text-slate-400 font-semibold block">Instant →</span>
         </button>
 
         <button
           type="button"
           onClick={() => {
             setTab("completedTasks");
-            setTimeframe("ALL");
             setSearch("");
           }}
-          className={`p-3 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${
-            tab === "completedTasks"
-              ? "bg-emerald-50/90 border-emerald-300 ring-2 ring-emerald-400"
-              : "bg-white border-slate-200 hover:border-emerald-300"
+          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md ${
+            tab === "completedTasks" ? "bg-emerald-50/90 border-emerald-300 ring-2 ring-emerald-400" : "bg-white border-slate-200 hover:border-emerald-300"
           }`}
         >
-          <p className="text-[11px] sm:text-xs font-bold text-emerald-800 uppercase tracking-wide truncate">✅ Done Tasks</p>
-          <p className="font-display text-xl sm:text-2xl font-black text-slate-900 mt-1">{totalDoneCount}</p>
-          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Archive →</span>
+          <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wide truncate">✅ Completed</p>
+          <p className="font-display text-lg font-black text-slate-900 mt-0.5">{totalDoneCount}</p>
+          <span className="text-[9px] text-slate-400 font-semibold block">Archive →</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setTab("professionals");
+            setShowPendingOnly(false);
+            setSearch("");
+          }}
+          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md ${
+            tab === "professionals" && !showPendingOnly ? "bg-blue-50/90 border-blue-300 ring-2 ring-blue-400" : "bg-white border-slate-200 hover:border-blue-300"
+          }`}
+        >
+          <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wide truncate">🛠️ Pros</p>
+          <p className="font-display text-lg font-black text-slate-900 mt-0.5">{professionals.length}</p>
+          <span className="text-[9px] text-slate-400 font-semibold block">Directory →</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setTab("professionals");
+            setShowPendingOnly(true);
+            setSearch("");
+          }}
+          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md ${
+            tab === "professionals" && showPendingOnly ? "bg-amber-50/90 border-amber-300 ring-2 ring-amber-400" : "bg-white border-slate-200 hover:border-amber-300"
+          }`}
+        >
+          <p className="text-[10px] font-bold text-amber-900 uppercase tracking-wide truncate">⏳ Pending</p>
+          <p className="font-display text-lg font-black text-slate-900 mt-0.5">{pendingCount}</p>
+          <span className="text-[9px] text-slate-400 font-semibold block">Review →</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setTab("reviews");
+            setSearch("");
+            loadReviews();
+          }}
+          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md ${
+            tab === "reviews" ? "bg-yellow-50/90 border-yellow-300 ring-2 ring-yellow-400" : "bg-white border-slate-200 hover:border-yellow-300"
+          }`}
+        >
+          <p className="text-[10px] font-bold text-yellow-800 uppercase tracking-wide truncate">⭐ Reviews</p>
+          <p className="font-display text-lg font-black text-slate-900 mt-0.5">{reviewsList.length}</p>
+          <span className="text-[9px] text-slate-400 font-semibold block">Ratings →</span>
         </button>
 
         <button
@@ -981,90 +1384,56 @@ export default function AdminDashboard() {
             setSearch("");
             loadCategories();
           }}
-          className={`p-3 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${
-            tab === "categories"
-              ? "bg-purple-50/90 border-purple-300 ring-2 ring-purple-400"
-              : "bg-white border-slate-200 hover:border-purple-300"
+          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md ${
+            tab === "categories" ? "bg-purple-50/90 border-purple-300 ring-2 ring-purple-400" : "bg-white border-slate-200 hover:border-purple-300"
           }`}
         >
-          <p className="text-[11px] sm:text-xs font-bold text-purple-800 uppercase tracking-wide truncate">📂 Categories</p>
-          <p className="font-display text-xl sm:text-2xl font-black text-slate-900 mt-1">{categoriesList.length}</p>
-          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Manage →</span>
+          <p className="text-[10px] font-bold text-purple-800 uppercase tracking-wide truncate">📂 Categories</p>
+          <p className="font-display text-lg font-black text-slate-900 mt-0.5">{categoriesList.length}</p>
+          <span className="text-[9px] text-slate-400 font-semibold block">Trades →</span>
         </button>
 
         <button
           type="button"
           onClick={() => {
-            setTab("professionals");
-            setShowPendingOnly(false);
-            setShowAvailableOnly(false);
+            setTab("locations");
             setSearch("");
+            loadLocations();
           }}
-          className={`p-3 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${
-            tab === "professionals" && !showPendingOnly && !showAvailableOnly
-              ? "bg-blue-50/90 border-blue-300 ring-2 ring-blue-400"
-              : "bg-white border-slate-200 hover:border-blue-300"
+          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md ${
+            tab === "locations" ? "bg-teal-50/90 border-teal-300 ring-2 ring-teal-400" : "bg-white border-slate-200 hover:border-teal-300"
           }`}
         >
-          <p className="text-[11px] sm:text-xs font-bold text-blue-800 uppercase tracking-wide truncate">All Pros</p>
-          <p className="font-display text-xl sm:text-2xl font-black text-slate-900 mt-1">{professionals.length}</p>
-          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Directory →</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setTab("professionals");
-            setShowPendingOnly(true);
-            setShowAvailableOnly(false);
-            setSearch("");
-          }}
-          className={`p-3 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${
-            tab === "professionals" && showPendingOnly
-              ? "bg-amber-50/90 border-amber-300 ring-2 ring-amber-400"
-              : "bg-white border-slate-200 hover:border-amber-300"
-          }`}
-        >
-          <p className="text-[11px] sm:text-xs font-bold text-amber-900 uppercase tracking-wide truncate">Pending</p>
-          <p className="font-display text-xl sm:text-2xl font-black text-slate-900 mt-1">{pendingCount}</p>
-          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Review →</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setTab("professionals");
-            setShowAvailableOnly(true);
-            setShowPendingOnly(false);
-            setSearch("");
-          }}
-          className={`p-3 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${
-            tab === "professionals" && showAvailableOnly
-              ? "bg-emerald-50/90 border-emerald-300 ring-2 ring-emerald-400"
-              : "bg-white border-slate-200 hover:border-emerald-300"
-          }`}
-        >
-          <p className="text-[11px] sm:text-xs font-bold text-emerald-800 uppercase tracking-wide truncate">Available</p>
-          <p className="font-display text-xl sm:text-2xl font-black text-slate-900 mt-1">{availableCount}</p>
-          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Active now →</span>
+          <p className="text-[10px] font-bold text-teal-800 uppercase tracking-wide truncate">📍 Areas</p>
+          <p className="font-display text-lg font-black text-slate-900 mt-0.5">{locationsList.length}</p>
+          <span className="text-[9px] text-slate-400 font-semibold block">Upazilas →</span>
         </button>
       </div>
 
-      {/* Responsive Horizontal Scroll Tabs */}
-      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 border-b border-slate-200 sm:flex-wrap">
+      {/* Horizontal Nav Tabs */}
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 border-b border-slate-200">
+        <button
+          onClick={() => {
+            setTab("overview");
+            loadAnalytics();
+          }}
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            tab === "overview" ? "bg-slate-900 text-white shadow-xs" : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          <span>📊 Overview & Analytics</span>
+        </button>
+
         <button
           onClick={() => {
             setTab("instantBookings");
             setShowPendingOnly(false);
-            setShowAvailableOnly(false);
           }}
-          className={`flex items-center gap-1.5 rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-            tab === "instantBookings"
-              ? "bg-blue-600 text-white shadow-xs"
-              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            tab === "instantBookings" ? "bg-blue-600 text-white shadow-xs" : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
           }`}
         >
-          <span>⚡ Instant Bookings</span>
+          <span>⚡ Dispatches ({instantBookingsList.length})</span>
           {newInstantCount > 0 && (
             <span className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full animate-pulse">
               {newInstantCount}
@@ -1073,939 +1442,559 @@ export default function AdminDashboard() {
         </button>
 
         <button
-          onClick={() => {
-            setTab("completedTasks");
-            setShowPendingOnly(false);
-            setShowAvailableOnly(false);
-          }}
-          className={`flex items-center gap-1.5 rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-            tab === "completedTasks"
-              ? "bg-emerald-600 text-white shadow-xs"
-              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
-          }`}
-        >
-          <span>✅ Done Tasks</span>
-          <span className="bg-emerald-100 text-emerald-900 text-[10px] font-black px-2 py-0.5 rounded-full">
-            {totalDoneCount}
-          </span>
-        </button>
-
-        <button
-          onClick={() => {
-            setTab("categories");
-            setShowPendingOnly(false);
-            setShowAvailableOnly(false);
-            loadCategories();
-          }}
-          className={`flex items-center gap-1.5 rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-            tab === "categories"
-              ? "bg-purple-600 text-white shadow-xs"
-              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
-          }`}
-        >
-          <span>📂 Categories</span>
-          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-            tab === "categories" ? "bg-purple-800 text-white" : "bg-purple-100 text-purple-900"
-          }`}>
-            {categoriesList.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => {
-            setTab("professionals");
-            setShowPendingOnly(false);
-            setShowAvailableOnly(false);
-          }}
-          className={`rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-            tab === "professionals"
-              ? "bg-slate-900 text-white shadow-xs"
-              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          onClick={() => setTab("professionals")}
+          className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            tab === "professionals" ? "bg-slate-900 text-white shadow-xs" : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
           }`}
         >
           Pros ({professionals.length})
         </button>
 
         <button
-          onClick={() => {
-            setTab("bookings");
-            setShowPendingOnly(false);
-            setShowAvailableOnly(false);
-          }}
-          className={`rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-            tab === "bookings"
-              ? "bg-slate-900 text-white shadow-xs"
-              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          onClick={() => setTab("completedTasks")}
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            tab === "completedTasks" ? "bg-emerald-600 text-white shadow-xs" : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
           }`}
         >
-          Direct ({bookings.length})
+          <span>✅ Completed ({totalDoneCount})</span>
         </button>
 
         <button
           onClick={() => {
-            setTab("users");
-            setShowPendingOnly(false);
-            setShowAvailableOnly(false);
+            setTab("reviews");
+            loadReviews();
           }}
-          className={`rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-            tab === "users"
-              ? "bg-slate-900 text-white shadow-xs"
-              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            tab === "reviews" ? "bg-yellow-600 text-white shadow-xs" : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          <span>⭐ Reviews ({reviewsList.length})</span>
+        </button>
+
+        <button
+          onClick={() => setTab("users")}
+          className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            tab === "users" ? "bg-slate-900 text-white shadow-xs" : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
           }`}
         >
           Users ({users.length})
         </button>
+
+        <button
+          onClick={() => setTab("bookings")}
+          className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            tab === "bookings" ? "bg-slate-900 text-white shadow-xs" : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          Direct Bookings ({bookings.length})
+        </button>
+
+        <button
+          onClick={() => {
+            setTab("categories");
+            loadCategories();
+          }}
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            tab === "categories" ? "bg-purple-600 text-white shadow-xs" : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          <span>📂 Categories ({categoriesList.length})</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setTab("locations");
+            loadLocations();
+          }}
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            tab === "locations" ? "bg-teal-700 text-white shadow-xs" : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          <span>📍 Areas & Upazilas ({locationsList.length})</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setTab("announcements");
+            loadSettings();
+          }}
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            tab === "announcements" ? "bg-rose-600 text-white shadow-xs" : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          <span>📢 Announcements</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setTab("settings");
+            loadSettings();
+          }}
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            tab === "settings" ? "bg-slate-900 text-white shadow-xs" : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+          }`}
+        >
+          <span>⚙️ Settings & Backup</span>
+        </button>
       </div>
 
-      {/* Search & Filters */}
-      <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={`Search in ${tab}...`}
-          className="w-full sm:min-w-[240px] sm:flex-1 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
-        />
-
-        {tab === "professionals" && (
-          <div className="flex flex-wrap items-center gap-2">
+      {/* Global Search Filter */}
+      {tab !== "overview" && tab !== "settings" && tab !== "announcements" && (
+        <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={`Search ${tab}... (name, phone, area, category)`}
+            className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
+          />
+          {search && (
             <button
-              onClick={() => {
-                setShowPendingOnly((value) => !value);
-                setShowAvailableOnly(false);
-              }}
-              className={`flex-1 sm:flex-initial rounded-xl border px-3 py-2 text-xs font-bold transition-all cursor-pointer text-center ${
-                showPendingOnly
-                  ? "bg-amber-400 text-slate-950 border-amber-500 shadow-2xs"
-                  : "bg-white text-slate-800 border-slate-300 hover:bg-slate-50"
-              }`}
+              onClick={() => setSearch("")}
+              className="text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-100 px-3 py-2 rounded-xl cursor-pointer"
             >
-              {showPendingOnly ? "✓ Pending Only" : "Filter: Pending"}
+              Clear
             </button>
+          )}
+        </div>
+      )}
 
+      {/* ========================================================================= */}
+      {/* TAB 1: OVERVIEW & LIVE ANALYTICS */}
+      {/* ========================================================================= */}
+      {tab === "overview" && (
+        <div className="space-y-6 motion-enter">
+          {/* Financial & GMV Summary Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-lg shadow-emerald-600/10 space-y-2">
+              <span className="text-xs uppercase font-bold text-emerald-100 tracking-wider">
+                💰 Estimated Platform Value (GMV)
+              </span>
+              <p className="font-display font-black text-3xl sm:text-4xl text-white">
+                ৳{(analyticsData?.financials?.estimatedGmv ?? totalDoneCount * 350).toLocaleString()}
+              </p>
+              <p className="text-[11px] text-emerald-100 font-medium">
+                Based on completed jobs across Sirajganj & Bangladesh
+              </p>
+            </div>
+
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-600/10 space-y-2">
+              <span className="text-xs uppercase font-bold text-blue-100 tracking-wider">
+                ⚡ Service Fulfillment Rate
+              </span>
+              <p className="font-display font-black text-3xl sm:text-4xl text-white">
+                {analyticsData?.operations?.fulfillmentRate ?? 95}%
+              </p>
+              <p className="text-[11px] text-blue-100 font-medium">
+                {totalDoneCount} tasks fulfilled out of {instantBookingsList.length + bookings.length} total requests
+              </p>
+            </div>
+
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-purple-600 to-pink-700 text-white shadow-lg shadow-purple-600/10 space-y-2">
+              <span className="text-xs uppercase font-bold text-purple-100 tracking-wider">
+                ⭐ Platform Reputation Index
+              </span>
+              <p className="font-display font-black text-3xl sm:text-4xl text-white">
+                {reviewsStats.avgRating > 0 ? reviewsStats.avgRating : 4.9} / 5.0
+              </p>
+              <p className="text-[11px] text-purple-100 font-medium">
+                Calculated across {reviewsList.length} verified customer reviews
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Dispatch & System Shortcuts */}
+          <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <h3 className="font-display font-extrabold text-sm text-slate-900 flex items-center gap-2">
+              <span>⚡</span> Quick Administrative Dispatch Actions
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <button
+                type="button"
+                onClick={() => setTab("instantBookings")}
+                className="p-3 bg-blue-50 hover:bg-blue-100/70 border border-blue-200 rounded-2xl text-left transition-all cursor-pointer"
+              >
+                <span className="text-lg block">🚨</span>
+                <p className="font-bold text-xs text-blue-900 mt-1">Pending Dispatches</p>
+                <span className="text-[10px] text-blue-700 font-semibold">{newInstantCount} new requests</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTab("professionals");
+                  setShowPendingOnly(true);
+                }}
+                className="p-3 bg-amber-50 hover:bg-amber-100/70 border border-amber-200 rounded-2xl text-left transition-all cursor-pointer"
+              >
+                <span className="text-lg block">⏳</span>
+                <p className="font-bold text-xs text-amber-900 mt-1">Verify Technicians</p>
+                <span className="text-[10px] text-amber-700 font-semibold">{pendingCount} pending review</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTab("announcements")}
+                className="p-3 bg-rose-50 hover:bg-rose-100/70 border border-rose-200 rounded-2xl text-left transition-all cursor-pointer"
+              >
+                <span className="text-lg block">📢</span>
+                <p className="font-bold text-xs text-rose-900 mt-1">Broadcast Banner</p>
+                <span className="text-[10px] text-rose-700 font-semibold">Live announcement</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportInstantCSV}
+                className="p-3 bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200 rounded-2xl text-left transition-all cursor-pointer"
+              >
+                <span className="text-lg block">📊</span>
+                <p className="font-bold text-xs text-emerald-900 mt-1">Export Database</p>
+                <span className="text-[10px] text-emerald-700 font-semibold">1-Click CSV backup</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Platform Distribution: Top Categories & Top Areas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Top Demand Categories */}
+            <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-3">
+              <h3 className="font-display font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                <span>🔥</span> Top Demanded Service Trades
+              </h3>
+              <div className="space-y-2">
+                {analyticsData?.topCategories && analyticsData.topCategories.length > 0 ? (
+                  analyticsData.topCategories.map((item, i) => (
+                    <div key={item.name} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl">
+                      <span className="font-bold text-xs text-slate-800 flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-black flex items-center justify-center">
+                          {i + 1}
+                        </span>
+                        <span>{item.name}</span>
+                      </span>
+                      <span className="text-xs font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg">
+                        {item.count} bookings
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400 p-4 text-center">Loading category distribution...</p>
+                )}
+              </div>
+            </div>
+
+            {/* Top Upazila Locations */}
+            <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-3">
+              <h3 className="font-display font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                <span>📍</span> Most Active Service Locations / Upazilas
+              </h3>
+              <div className="space-y-2">
+                {analyticsData?.topAreas && analyticsData.topAreas.length > 0 ? (
+                  analyticsData.topAreas.map((item, i) => (
+                    <div key={item.name} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl">
+                      <span className="font-bold text-xs text-slate-800 flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-800 text-[10px] font-black flex items-center justify-center">
+                          {i + 1}
+                        </span>
+                        <span>{item.name}</span>
+                      </span>
+                      <span className="text-xs font-extrabold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-lg">
+                        {item.count} requests
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400 p-4 text-center">Loading location distribution...</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 2: INSTANT BOOKINGS & SMART DISPATCH */}
+      {/* ========================================================================= */}
+      {tab === "instantBookings" && (
+        <div className="space-y-4 motion-enter">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-amber-50/80 border border-amber-200/90 rounded-2xl">
+            <div>
+              <h2 className="font-display font-extrabold text-base text-amber-950">
+                Live Emergency Dispatches ({displayedInstantBookings.length})
+              </h2>
+              <p className="text-xs text-amber-800 font-medium mt-0.5">
+                Assign nearest technician, send instant WhatsApp/Call dispatch, and track service status.
+              </p>
+            </div>
             <button
-              onClick={() => {
-                setShowAvailableOnly((value) => !value);
-                setShowPendingOnly(false);
-              }}
-              className={`flex-1 sm:flex-initial rounded-xl border px-3 py-2 text-xs font-bold transition-all cursor-pointer text-center ${
-                showAvailableOnly
-                  ? "bg-emerald-600 text-white border-emerald-700 shadow-2xs"
-                  : "bg-white text-slate-800 border-slate-300 hover:bg-slate-50"
-              }`}
+              onClick={handleExportInstantCSV}
+              className="bg-white hover:bg-amber-100/50 text-amber-900 border border-amber-300 text-xs font-bold px-3 py-2 rounded-xl shadow-2xs transition-all cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
             >
-              {showAvailableOnly ? "✓ Available Only" : "Filter: Available"}
+              <span>📥</span>
+              <span>Export Dispatches CSV</span>
             </button>
           </div>
-        )}
-      </div>
 
-      {/* TAB 1: INSTANT BOOKINGS */}
-      {tab === "instantBookings" && (
-        <div className="space-y-4">
           {displayedInstantBookings.length === 0 ? (
-            <div className="p-8 text-center text-xs font-semibold text-slate-500 bg-white rounded-2xl border border-slate-200">
-              No instant booking requests found.
+            <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
+              <span className="text-3xl block">⚡</span>
+              <p className="text-sm font-bold text-slate-800">No instant bookings found.</p>
+              <p className="text-xs text-slate-500">All customer emergency requests are fulfilled.</p>
             </div>
           ) : (
-            displayedInstantBookings.map((item) => (
-              <div
-                key={item.id}
-                className="p-4 sm:p-6 rounded-2xl bg-white shadow-sm border border-slate-200/90 space-y-4"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-display font-extrabold text-base text-slate-900">
-                        {item.customerName}
-                      </span>
-                      <span className="text-xs font-bold text-blue-800 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-lg">
-                        {item.categoryName}
-                      </span>
-                      {item.urgency === "ASAP" && (
-                        <span className="text-xs font-black bg-red-100 text-red-900 border border-red-200 px-2 py-0.5 rounded-lg animate-pulse">
-                          ⚡ EMERGENCY
+            <div className="space-y-3">
+              {displayedInstantBookings.map((booking) => {
+                const isNew = booking.status === "NEW";
+                const isCompleted = booking.status === "COMPLETED";
+
+                const cleanPhone = booking.customerPhone ? booking.customerPhone.replace(/\D/g, "") : "";
+                const waPhone = cleanPhone.startsWith("88") ? cleanPhone : `88${cleanPhone}`;
+                const waText = encodeURIComponent(
+                  `আসসালামু আলাইকুম ${booking.customerName}। SohojService থেকে আপনার "${booking.categoryName}" এর অনুরোধটি গ্রহণ করা হয়েছে।`
+                );
+
+                return (
+                  <div
+                    key={booking.id}
+                    className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border shadow-sm transition-all space-y-3.5 ${
+                      isNew
+                        ? "bg-amber-50/70 border-amber-300 ring-2 ring-amber-400/40"
+                        : isCompleted
+                        ? "bg-emerald-50/50 border-emerald-200"
+                        : "bg-white border-slate-200"
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md">
+                          #{booking.id.slice(-6).toUpperCase()}
                         </span>
-                      )}
+                        <span className="text-xs font-extrabold text-slate-900 bg-white border border-slate-200 px-2.5 py-0.5 rounded-lg shadow-2xs">
+                          {booking.categoryName}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                            booking.urgency === "ASAP"
+                              ? "bg-red-100 text-red-800 border border-red-200"
+                              : "bg-blue-100 text-blue-800 border border-blue-200"
+                          }`}
+                        >
+                          {booking.urgency === "ASAP" ? "🚨 Emergency (ASAP)" : booking.urgency}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                            isNew
+                              ? "bg-red-500 text-white animate-pulse"
+                              : booking.status === "ASSIGNED"
+                              ? "bg-blue-600 text-white"
+                              : isCompleted
+                              ? "bg-emerald-600 text-white"
+                              : "bg-slate-700 text-white"
+                          }`}
+                        >
+                          {booking.status}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {new Date(booking.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-600 font-medium mt-1">
-                      📍 {item.area} {item.fullAddress ? `· ${item.fullAddress}` : ""} · {new Date(item.createdAt).toLocaleDateString()}
+
+                    {/* Customer & Location Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <span className="text-slate-400 font-semibold block text-[10px] uppercase">Customer</span>
+                        <p className="font-bold text-slate-900 text-sm">{booking.customerName}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <a
+                            href={`tel:${booking.customerPhone}`}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline bg-blue-50 px-2 py-0.5 rounded"
+                          >
+                            <span>📞</span> {booking.customerPhone}
+                          </a>
+                          {cleanPhone && (
+                            <a
+                              href={`https://wa.me/${waPhone}?text=${waText}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:underline bg-emerald-50 px-2 py-0.5 rounded"
+                            >
+                              <span>💬</span> WhatsApp
+                            </a>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-slate-400 font-semibold block text-[10px] uppercase">Location</span>
+                        <p className="font-bold text-slate-900">📍 {booking.area}</p>
+                        <p className="text-slate-500 text-[11px] truncate">{booking.fullAddress}</p>
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <span className="text-slate-400 font-semibold block text-[10px] uppercase">Problem Description</span>
+                        <p className="font-medium text-slate-800 bg-slate-50/90 p-2 rounded-xl border border-slate-200">
+                          {booking.problemDescription}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Smart Technician Assignment & Status Stepper */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="font-bold text-slate-700 whitespace-nowrap">Assign Technician:</span>
+                        <select
+                          value={booking.assignedProfessionalId || ""}
+                          onChange={(e) => assignInstantProfessional(booking.id, e.target.value || null)}
+                          className="flex-1 sm:max-w-xs border border-slate-300 bg-white rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 focus:border-indigo-600 focus:outline-none cursor-pointer"
+                        >
+                          <option value="">-- Unassigned (Click to Assign) --</option>
+                          {professionals.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} ({p.category?.nameEn} · {p.area}) {p.isVerified ? "✓ Verified" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {isNew && (
+                          <button
+                            type="button"
+                            onClick={() => updateInstantStatus(booking.id, "CONTACTED")}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+                          >
+                            Mark Contacted
+                          </button>
+                        )}
+
+                        {!isCompleted && (
+                          <button
+                            type="button"
+                            onClick={() => updateInstantStatus(booking.id, "COMPLETED")}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                          >
+                            <span>✓</span> Mark Completed
+                          </button>
+                        )}
+
+                        {booking.status !== "CANCELLED" && (
+                          <button
+                            type="button"
+                            onClick={() => updateInstantStatus(booking.id, "CANCELLED")}
+                            className="text-slate-500 hover:text-red-700 hover:bg-red-50 text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 3: REVIEWS & REPUTATION MODERATION */}
+      {/* ========================================================================= */}
+      {tab === "reviews" && (
+        <div className="space-y-4 motion-enter">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-yellow-50/80 border border-yellow-200/90 rounded-2xl">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-display font-extrabold text-base text-yellow-950">
+                  Customer Ratings & Reviews ({displayedReviews.length})
+                </h2>
+                <span className="text-[10px] font-bold bg-yellow-200 text-yellow-950 px-2 py-0.5 rounded-full">
+                  Avg: {reviewsStats.avgRating} ★
+                </span>
+              </div>
+              <p className="text-xs text-yellow-900 font-medium mt-0.5">
+                Moderate, inspect, and manage verified ratings and comments submitted by customers.
+              </p>
+            </div>
+
+            <button
+              onClick={() => loadReviews()}
+              className="bg-white hover:bg-yellow-100/60 text-yellow-950 border border-yellow-300 text-xs font-bold px-3 py-2 rounded-xl shadow-2xs transition-all cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+            >
+              <span>🔄</span> Refresh Reviews
+            </button>
+          </div>
+
+          {/* Star Rating Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 text-xs">
+            <button
+              type="button"
+              onClick={() => setSelectedReviewRating("ALL")}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                selectedReviewRating === "ALL" ? "bg-yellow-600 text-white shadow-2xs" : "bg-white border border-slate-200 text-slate-700"
+              }`}
+            >
+              All Reviews ({reviewsStats.total})
+            </button>
+            {[5, 4, 3, 2, 1].map((stars) => (
+              <button
+                key={stars}
+                type="button"
+                onClick={() => setSelectedReviewRating(stars)}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                  selectedReviewRating === stars ? "bg-yellow-600 text-white shadow-2xs" : "bg-white border border-slate-200 text-slate-700"
+                }`}
+              >
+                <span>{stars} ★</span>
+                <span className="text-[10px] opacity-80">
+                  ({stars === 5 ? reviewsStats.rating5 : stars === 4 ? reviewsStats.rating4 : stars === 3 ? reviewsStats.rating3 : stars === 2 ? reviewsStats.rating2 : reviewsStats.rating1})
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Reviews Grid */}
+          {displayedReviews.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
+              <span className="text-3xl block">⭐</span>
+              <p className="text-sm font-bold text-slate-800">No reviews found.</p>
+              <p className="text-xs text-slate-500">No ratings match your filter criteria.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {displayedReviews.map((rev) => (
+                <div key={rev.id} className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-amber-500 font-bold text-sm">{"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}</span>
+                        <span className="text-xs font-bold text-slate-900">{rev.rating}.0 / 5.0</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400">{new Date(rev.createdAt).toLocaleDateString()}</span>
+                    </div>
+
+                    <p className="text-xs text-slate-800 font-medium italic bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                      &quot;{rev.comment || "No written review text."}&quot;
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <a
-                      href={`tel:${item.customerPhone}`}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all shadow-2xs flex items-center gap-1 shrink-0"
-                    >
-                      <span>📞</span>
-                      <span>{item.customerPhone}</span>
-                    </a>
-
-                    {/* Quick Mark as Done Action Button */}
-                    {item.status !== "COMPLETED" ? (
-                      <button
-                        type="button"
-                        onClick={() => updateInstantBookingStatus(item.id, "COMPLETED")}
-                        className="bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border border-emerald-300 text-xs font-extrabold px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-2xs shrink-0"
-                      >
-                        ✅ Done
-                      </button>
-                    ) : (
-                      <span className="text-xs font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-lg shrink-0">
-                        ✓ Done
-                      </span>
-                    )}
-
-                    <select
-                      value={item.status}
-                      onChange={(e) => updateInstantBookingStatus(item.id, e.target.value as any)}
-                      className={`text-xs font-bold rounded-lg border px-2.5 py-1.5 cursor-pointer shrink-0 ${
-                        item.status === "NEW"
-                          ? "bg-red-50 text-red-900 border-red-300"
-                          : item.status === "CONTACTED"
-                          ? "bg-amber-50 text-amber-900 border-amber-300"
-                          : item.status === "ASSIGNED"
-                          ? "bg-blue-50 text-blue-900 border-blue-300"
-                          : item.status === "COMPLETED"
-                          ? "bg-emerald-50 text-emerald-900 border-emerald-300"
-                          : "bg-slate-100 text-slate-800 border-slate-300"
-                      }`}
-                    >
-                      <option value="NEW">🔴 NEW</option>
-                      <option value="CONTACTED">🟡 CONTACTED</option>
-                      <option value="ASSIGNED">🔵 ASSIGNED</option>
-                      <option value="COMPLETED">🟢 COMPLETED</option>
-                      <option value="CANCELLED">⚪ CANCELLED</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Problem Description */}
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/70 text-xs">
-                  <span className="font-bold text-slate-600 uppercase tracking-wider block mb-1">
-                    Problem / Requirements:
-                  </span>
-                  <p className="text-slate-900 font-medium whitespace-pre-wrap leading-relaxed">{item.problemDescription}</p>
-                </div>
-
-                {/* Assignment & Notes Row */}
-                <div className="grid sm:grid-cols-2 gap-4 text-xs">
-                  {/* Assign to Pro */}
-                  <div className="space-y-1.5">
-                    <label className="font-bold text-slate-700 uppercase tracking-wide block">
-                      Assign to Verified Professional:
-                    </label>
-                    <select
-                      value={item.assignedProfessionalId || ""}
-                      onChange={(e) => assignInstantBookingPro(item.id, e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs text-slate-900 font-medium"
-                    >
-                      <option value="">-- Select a Professional to Assign --</option>
-                      {professionals.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} ({p.category.nameEn} · {p.area})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Admin Internal Notes */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="font-bold text-slate-700 uppercase tracking-wide">
-                        Internal Admin Notes:
-                      </label>
-                      {editingNoteId !== item.id && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingNoteId(item.id);
-                            setNoteText(item.adminNotes || "");
-                          }}
-                          className="text-[11px] font-bold text-blue-700 hover:underline cursor-pointer"
-                        >
-                          {item.adminNotes ? "Edit Note" : "+ Add Note"}
-                        </button>
-                      )}
-                    </div>
-
-                    {editingNoteId === item.id ? (
-                      <div className="flex gap-2">
-                        <input
-                          value={noteText}
-                          onChange={(e) => setNoteText(e.target.value)}
-                          placeholder="e.g. Called customer, assigned technician..."
-                          className="flex-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-900"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => saveInstantBookingNote(item.id)}
-                          className="bg-slate-900 text-white font-bold px-3 py-1 rounded-lg text-xs cursor-pointer"
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingNoteId(null)}
-                          className="text-slate-400 hover:text-slate-700 text-xs px-1 cursor-pointer"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="text-slate-600 font-medium italic p-2 bg-slate-50 border border-slate-200 rounded-lg">
-                        {item.adminNotes || "No notes yet."}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* TAB 2: COMPLETED / DONE TASK LIST (WITH TIMEFRAME FILTERS) */}
-      {tab === "completedTasks" && (
-        <div className="space-y-4">
-          {/* Timeframe Filter Bar */}
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0 sm:flex-wrap">
-              <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mr-1 shrink-0">Filter:</span>
-              <button
-                type="button"
-                onClick={() => setTimeframe("ALL")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  timeframe === "ALL"
-                    ? "bg-slate-900 text-white shadow-xs"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                All Time ({totalDoneCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setTimeframe("TODAY")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  timeframe === "TODAY"
-                    ? "bg-emerald-600 text-white shadow-xs"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                ⚡ Today ({doneTodayCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setTimeframe("THIS_WEEK")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  timeframe === "THIS_WEEK"
-                    ? "bg-blue-600 text-white shadow-xs"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                🗓️ This Week ({doneWeekCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setTimeframe("THIS_MONTH")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  timeframe === "THIS_MONTH"
-                    ? "bg-purple-600 text-white shadow-xs"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                📆 This Month ({doneMonthCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setTimeframe("THIS_YEAR")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  timeframe === "THIS_YEAR"
-                    ? "bg-amber-600 text-white shadow-xs"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                🏆 This Year ({doneYearCount})
-              </button>
-            </div>
-
-            <div className="text-[11px] sm:text-xs font-bold text-slate-500 self-end sm:self-auto">
-              Showing {filteredDoneTasks.length} done tasks
-            </div>
-          </div>
-
-          {/* List of Done Tasks */}
-          {filteredDoneTasks.length === 0 ? (
-            <div className="p-12 text-center text-xs font-semibold text-slate-500 bg-white rounded-2xl border border-slate-200 space-y-2">
-              <span className="text-3xl block">📋</span>
-              <p className="text-sm font-bold text-slate-800">No completed tasks in this timeframe.</p>
-              <p className="text-slate-500">When requests are marked as Done, they will be organized here by date.</p>
-            </div>
-          ) : (
-            filteredDoneTasks.map((t) => (
-              <div
-                key={t.id}
-                className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3 hover:shadow-md transition-all"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <span className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm shrink-0">
-                      ✓
-                    </span>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-display font-extrabold text-sm text-slate-900">{t.customerName}</span>
-                        <span className="text-[11px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-                          {t.kind}
-                        </span>
-                        <span className="text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded">
-                          {t.category}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        📍 {t.location} · Completed: {new Date(t.date).toLocaleString()}
-                      </p>
+                      <span className="text-[10px] text-slate-400 font-semibold block uppercase">For Technician</span>
+                      <p className="font-bold text-slate-900">{rev.professional.name}</p>
+                      <span className="text-[10px] text-slate-500">{rev.professional.categoryName} · {rev.professional.area}</span>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2">
-                    {t.phone && (
-                      <a
-                        href={`tel:${t.phone}`}
-                        className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg flex items-center gap-1"
-                      >
-                        <span>📞</span>
-                        <span>{t.phone}</span>
-                      </a>
-                    )}
-                    <span className="text-xs font-extrabold text-emerald-950 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-lg">
-                      ✅ COMPLETED
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-xs text-slate-800 bg-slate-50 p-3 rounded-xl border border-slate-200/70">
-                  <span className="font-bold text-slate-500 uppercase tracking-wide block mb-1">Requirement:</span>
-                  <p className="font-medium whitespace-pre-wrap">{t.note}</p>
-                </div>
-
-                {(t.assignedName || t.adminNotes) && (
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 pt-1">
-                    {t.assignedName && (
-                      <span>🛠️ Assigned Technician: <strong className="text-slate-900">{t.assignedName}</strong></span>
-                    )}
-                    {t.adminNotes && (
-                      <span>📝 Notes: <em className="text-slate-800">{t.adminNotes}</em></span>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* TAB 3: PROFESSIONALS */}
-      {tab === "professionals" && (
-        <div className="space-y-3">
-          {displayedProfessionals.length === 0 ? (
-            <div className="p-8 text-center text-xs font-semibold text-slate-500 bg-white rounded-2xl border border-slate-200">
-              No professionals matching current filter.
-            </div>
-          ) : (
-            displayedProfessionals.map((p) => (
-              <div
-                key={p.id}
-                className="p-4 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-4 cursor-pointer hover:shadow-md transition-all group"
-                onClick={() => openProfessionalDetails(p.id)}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <ProfilePhoto name={p.name} photoUrl={p.photoUrl} size="md" />
-                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-display font-extrabold text-sm text-slate-900 truncate block group-hover:text-blue-700 transition-colors">
-                        {p.name}
-                      </span>
-                      <span className="text-xs text-slate-400 font-semibold">🔍 Tap to Edit</span>
-                    </div>
-                    <span className="text-xs text-slate-600 font-medium">{p.category.nameEn} · 📍 {p.area}, {p.city}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    onClick={() => toggleAvailability(p.id, p.isAvailable)}
-                    className={`text-xs font-bold px-2.5 py-1 rounded-lg cursor-pointer ${
-                      p.isAvailable ? "bg-emerald-50 text-emerald-900 border border-emerald-200" : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {p.isAvailable ? "● Available" : "Unavailable"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => toggleVerify(p.id, p.isVerified)}
-                    className={`text-xs font-bold px-3 py-1 rounded-lg cursor-pointer ${
-                      p.isVerified ? "bg-emerald-100 text-emerald-900 border border-emerald-300" : "bg-amber-100 text-amber-950 border border-amber-300"
-                    }`}
-                  >
-                    {p.isVerified ? "✓ Verified" : "Pending Review"}
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* TAB 4: DIRECT BOOKINGS */}
-      {tab === "bookings" && (
-        <div className="space-y-3">
-          {displayedBookings.length === 0 ? (
-            <div className="p-8 text-center text-xs font-semibold text-slate-500 bg-white rounded-2xl border border-slate-200">
-              No direct bookings found.
-            </div>
-          ) : (
-            displayedBookings.map((b) => (
-              <div key={b.id} className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <span className="font-display font-extrabold text-sm text-slate-900 block">{b.customerName}</span>
-                  <p className="text-xs text-slate-800 font-medium">{b.problemNote}</p>
-                  <p className="text-[11px] text-slate-500 font-semibold mt-0.5">📍 {b.address} · 🗓️ {new Date(b.preferredDate).toLocaleString()}</p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {b.status !== "COMPLETED" && (
-                    <button
-                      type="button"
-                      onClick={() => updateBookingStatus(b.id, "COMPLETED")}
-                      className="bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border border-emerald-300 text-xs font-extrabold px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-2xs"
-                    >
-                      ✅ Mark as Done
-                    </button>
-                  )}
-
-                  <select
-                    value={b.status}
-                    onChange={(e) => updateBookingStatus(b.id, e.target.value as any)}
-                    className="text-xs font-bold border border-slate-300 rounded-lg p-1.5 text-slate-900 cursor-pointer"
-                  >
-                    <option value="PENDING">PENDING</option>
-                    <option value="ACCEPTED">ACCEPTED</option>
-                    <option value="DECLINED">DECLINED</option>
-                    <option value="COMPLETED">COMPLETED (DONE)</option>
-                    <option value="CANCELLED">CANCELLED</option>
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => deleteBooking(b.id)}
-                    className="text-red-600 hover:text-red-800 text-xs font-bold px-2 py-1 cursor-pointer"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* TAB 5: USERS */}
-      {tab === "users" && (
-        <div className="space-y-3">
-          {displayedUsers.length === 0 ? (
-            <div className="p-8 text-center text-xs font-semibold text-slate-500 bg-white rounded-2xl border border-slate-200">
-              No users found.
-            </div>
-          ) : (
-            displayedUsers.map((u) => (
-              <div
-                key={u.id}
-                onClick={() => openUserDetails(u)}
-                className="p-4 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-4 cursor-pointer hover:shadow-md transition-all group"
-                role="button"
-                tabIndex={0}
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <ProfilePhoto name={u.name} photoUrl={u.photoUrl} size="md" />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-display font-extrabold text-sm text-slate-900 block group-hover:text-blue-700 transition-colors">
-                        {u.name}
-                      </span>
-                      <span className="text-xs text-slate-400 font-semibold">🔍 Tap to Edit</span>
-                    </div>
-                    <span className="text-xs text-slate-600 font-medium">
-                      {u.email} {u.phone ? `· 📞 ${u.phone}` : ""}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                  <span
-                    className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
-                      u.role === "ADMIN"
-                        ? "bg-purple-100 text-purple-900 border border-purple-300"
-                        : u.role === "PROFESSIONAL"
-                        ? "bg-blue-100 text-blue-900 border border-blue-300"
-                        : "bg-slate-100 text-slate-800 border border-slate-200"
-                    }`}
-                  >
-                    {u.role}
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() => openUserDetails(u)}
-                    className="text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg cursor-pointer"
-                  >
-                    Edit Profile
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* TAB 6: SERVICE CATEGORIES */}
-      {tab === "categories" && (
-        <div className="space-y-4">
-          {/* Header Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-purple-50/70 border border-purple-200/80 rounded-2xl">
-            <div>
-              <h2 className="font-display font-extrabold text-base text-purple-950">
-                Manage Service Categories ({categoriesList.length})
-              </h2>
-              <p className="text-xs text-purple-800 font-medium">
-                Add, edit, and organize all public service categories available on SohojService.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => loadCategories()}
-                className="bg-white hover:bg-purple-100/50 text-purple-900 border border-purple-300 text-xs font-bold px-3.5 py-2.5 rounded-xl shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
-                title="Reload categories from database"
-              >
-                <span>🔄</span>
-                <span>Refresh List</span>
-              </button>
-            </div>
-          </div>
-
-          {/* DIRECT DATA ENTRY SECTION FOR ADD / EDIT CATEGORY */}
-          <div
-            id="category-entry-section"
-            className={`p-4 sm:p-6 rounded-2xl sm:rounded-3xl border transition-all shadow-sm space-y-4 ${
-              editingCategory
-                ? "bg-gradient-to-b from-amber-50/90 to-white border-amber-300 ring-2 ring-amber-400/50"
-                : "bg-white border-purple-200/90"
-            }`}
-          >
-            {/* Section Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <span className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl font-bold shadow-2xs">
-                  {getCategoryEmoji(editingCategory ? editCatIcon : newCatIcon)}
-                </span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-display font-extrabold text-base sm:text-lg text-slate-900 leading-tight">
-                      {editingCategory ? `Edit Category: ${editingCategory.nameEn}` : "Add New Service Category"}
-                    </h3>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                        editingCategory
-                          ? "bg-amber-100 text-amber-900 border border-amber-300"
-                          : "bg-purple-100 text-purple-900 border border-purple-300"
-                      }`}
-                    >
-                      {editingCategory ? "✏️ Editing Mode" : "➕ Direct Data Entry"}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    {editingCategory
-                      ? "Update category names, slug, and icon theme below"
-                      : "Fill in the details below to add a new category instantly to the system"}
-                  </p>
-                </div>
-              </div>
-
-              {editingCategory && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingCategory(null);
-                    setEditCatError("");
-                  }}
-                  className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer shadow-2xs hover:bg-slate-50"
-                >
-                  ✕ Cancel Edit
-                </button>
-              )}
-            </div>
-
-            {/* Error alerts */}
-            {(editingCategory ? editCatError : createCatError) && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-center gap-2">
-                <span>⚠️</span>
-                <span>{editingCategory ? editCatError : createCatError}</span>
-              </div>
-            )}
-
-            {/* Form */}
-            <form
-              onSubmit={editingCategory ? handleSaveCategoryEdits : handleCreateCategory}
-              className="space-y-3.5 text-xs"
-            >
-              {/* English & Bangla Names in 2 Columns */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-800 block mb-1">
-                    Category Name (English) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editingCategory ? editCatNameEn : newCatNameEn}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (editingCategory) {
-                        setEditCatNameEn(val);
-                      } else {
-                        setNewCatNameEn(val);
-                        setNewCatSlug(
-                          val
-                            .toLowerCase()
-                            .trim()
-                            .replace(/[^a-z0-9]+/g, "-")
-                            .replace(/^-+|-+$/g, "")
-                        );
-                      }
-                    }}
-                    placeholder="e.g. Water Purifier & Filter"
-                    className="w-full border border-slate-300 bg-white rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-800 block mb-1">
-                    Category Name (Bangla) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editingCategory ? editCatNameBn : newCatNameBn}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (editingCategory) {
-                        setEditCatNameBn(val);
-                      } else {
-                        setNewCatNameBn(val);
-                      }
-                    }}
-                    placeholder="e.g. ওয়াটার ফিল্টার সার্ভিস"
-                    className="w-full border border-slate-300 bg-white rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* URL Slug */}
-              <div>
-                <label className="font-bold text-slate-800 block mb-1">
-                  URL Slug <span className="text-slate-400 text-[10px]">(Auto-generated or custom clean URL)</span>
-                </label>
-                <input
-                  type="text"
-                  value={editingCategory ? editCatSlug : newCatSlug}
-                  onChange={(e) => {
-                    const clean = e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-");
-                    if (editingCategory) setEditCatSlug(clean);
-                    else setNewCatSlug(clean);
-                  }}
-                  placeholder="water-purifier"
-                  className="w-full border border-slate-300 bg-white rounded-xl px-3.5 py-2.5 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
-                />
-              </div>
-
-              {/* Visual Icon Theme Palette (80+ Icons) */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="font-bold text-slate-800 text-xs">
-                    Choose Icon Theme <span className="text-purple-600 font-normal text-[11px]">({ICON_THEMES.length} icons available)</span>
-                  </label>
-                  <span className="text-[11px] font-bold text-purple-800 bg-purple-100/70 px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-purple-200">
-                    <span className="text-base">{getCategoryEmoji(editingCategory ? editCatIcon : newCatIcon)}</span>
-                    <span>Selected: {editingCategory ? editCatIcon : newCatIcon || "wrench"}</span>
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-8 sm:grid-cols-12 md:grid-cols-16 gap-1 max-h-32 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-2xl no-scrollbar">
-                  {ICON_THEMES.map((theme) => {
-                    const currentIcon = editingCategory ? editCatIcon : newCatIcon || "wrench";
-                    const isSelected = currentIcon === theme.id;
-                    return (
                       <button
-                        key={theme.id}
                         type="button"
-                        title={theme.label}
-                        onClick={() => {
-                          if (editingCategory) setEditCatIcon(theme.id);
-                          else setNewCatIcon(theme.id);
-                        }}
-                        className={`h-9 w-full flex items-center justify-center rounded-xl text-lg transition-all cursor-pointer ${
-                          isSelected
-                            ? "bg-purple-600 text-white shadow-md scale-110 ring-2 ring-purple-600 ring-offset-1 z-10"
-                            : "bg-white text-slate-800 border border-slate-200/90 hover:bg-purple-100 hover:scale-105"
-                        }`}
+                        onClick={() => handleDeleteReview(rev.id)}
+                        className="text-[11px] font-bold text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
                       >
-                        <span>{theme.emoji}</span>
+                        🗑️ Delete Review
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Real-time Category Preview Card */}
-              {(editingCategory ? editCatNameEn : newCatNameEn) && (
-                <div className="p-3 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border border-purple-200 rounded-2xl flex items-center justify-between shadow-2xs">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-purple-200 text-purple-900 flex items-center justify-center font-bold text-xl shrink-0 shadow-2xs">
-                      {getCategoryEmoji(editingCategory ? editCatIcon : newCatIcon)}
                     </div>
-                    <div className="truncate">
-                      <p className="font-extrabold text-sm text-purple-950 truncate">
-                        {editingCategory ? editCatNameEn : newCatNameEn}
-                      </p>
-                      <p className="text-xs text-purple-700 font-semibold truncate">
-                        {(editingCategory ? editCatNameBn : newCatNameBn) || "বাংলা নাম..."}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono bg-white px-3 py-1 rounded-lg text-purple-900 border border-purple-200 font-bold shrink-0 shadow-2xs">
-                    /{(editingCategory ? editCatSlug : newCatSlug) || "slug"}
-                  </span>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                {editingCategory ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingCategory(null);
-                        setEditCatError("");
-                      }}
-                      className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer transition-colors"
-                    >
-                      Cancel Edit
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={savingCategory}
-                      className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
-                    >
-                      <span>💾</span>
-                      <span>{savingCategory ? "Saving..." : "Save Category Changes"}</span>
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="submit"
-                    disabled={creatingCategory}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
-                  >
-                    <span>➕</span>
-                    <span>{creatingCategory ? "Creating..." : "Add Category to Database"}</span>
-                  </button>
-                )}
-              </div>
-            </form>
-          </div>
-
-          {/* Category Cards List Header */}
-          <div className="flex items-center justify-between pt-2">
-            <h3 className="font-display font-bold text-sm text-slate-900">
-              Existing Categories ({displayedCategories.length})
-            </h3>
-            <span className="text-xs text-slate-500 font-medium">Click ✏️ Edit to modify directly above</span>
-          </div>
-
-          {/* Category Cards Grid */}
-          {displayedCategories.length === 0 ? (
-            <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
-              <span className="text-3xl block">📂</span>
-              <p className="text-sm font-bold text-slate-800">No categories found.</p>
-              <p className="text-xs text-slate-500">
-                {search ? "No categories matched your search term." : "Your category list is empty or loading."}
-              </p>
-              <div className="flex items-center justify-center gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => loadCategories()}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold px-4 py-2 rounded-xl cursor-pointer"
-                >
-                  🔄 Reload List
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {displayedCategories.map((cat) => (
-                <div
-                  key={cat.id}
-                  onClick={() => openEditCategoryModal(cat)}
-                  className={`p-4 rounded-2xl border shadow-2xs hover:shadow-md transition-all flex flex-col justify-between space-y-3 cursor-pointer group ${
-                    editingCategory?.id === cat.id
-                      ? "bg-amber-50/60 border-amber-300 ring-2 ring-amber-400"
-                      : "bg-white border-slate-200/90 hover:border-purple-300"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xl group-hover:scale-110 transition-transform">
-                        {getCategoryEmoji(cat.icon, cat.slug)}
-                      </div>
-                      <div>
-                        <h3 className="font-display font-bold text-sm text-slate-900 group-hover:text-purple-700 transition-colors">
-                          {cat.nameEn}
-                        </h3>
-                        <p className="text-xs font-semibold text-slate-500">{cat.nameBn}</p>
-                      </div>
-                    </div>
-
-                    <span className="text-[10px] font-bold text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md shrink-0">
-                      {cat.proCount ?? 0} Pros
-                    </span>
-                  </div>
-
-                  <div className="text-[11px] text-slate-400 font-mono flex items-center justify-between border-t border-slate-100 pt-2">
-                    <span>slug: <strong className="text-slate-600">{cat.slug}</strong></span>
-                    <span>icon: <strong className="text-slate-600">{cat.icon || "wrench"}</strong></span>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      type="button"
-                      onClick={() => openEditCategoryModal(cat)}
-                      className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
-                    >
-                      ✏️ Edit Directly
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCategory(cat.id, cat.nameEn)}
-                      className="text-xs font-bold text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
-                    >
-                      🗑️ Delete
-                    </button>
                   </div>
                 </div>
               ))}
@@ -2014,145 +2003,792 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL 1: EDIT PROFESSIONAL PROFILE */}
-      {selectedProfessional && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs motion-enter">
-          <div className="relative w-full max-w-lg sm:max-w-2xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 flex flex-col max-h-[88dvh] overflow-hidden">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
-              <div className="flex items-center gap-3">
-                <ProfilePhoto name={selectedProfessional.user.name} photoUrl={selectedProfessional.photoUrl} size="md" />
-                <div>
-                  <h2 className="font-display font-extrabold text-base sm:text-xl text-slate-900">{selectedProfessional.user.name}</h2>
-                  <p className="text-xs text-blue-700 font-bold">{selectedProfessional.category.nameEn} · ID: #{selectedProfessional.id.slice(-6)}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedProfessional(null)}
-                className="text-slate-400 hover:text-slate-700 text-lg font-bold p-1 rounded-lg cursor-pointer"
-              >
-                ✕
-              </button>
+      {/* ========================================================================= */}
+      {/* TAB 4: SITE-WIDE ANNOUNCEMENT & BANNER */}
+      {/* ========================================================================= */}
+      {tab === "announcements" && (
+        <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-6 motion-enter">
+          <div className="pb-3 border-b border-slate-100">
+            <h2 className="font-display font-extrabold text-base sm:text-lg text-slate-900">
+              📢 Public Site-Wide Announcement Banner
+            </h2>
+            <p className="text-xs text-slate-500">
+              Broadcast urgent notifications, holiday alerts, weather advisories, or service updates across all pages.
+            </p>
+          </div>
+
+          {/* Live Preview */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-700 uppercase">Live Preview on Homepage:</label>
+            <div
+              className={`p-3.5 rounded-2xl border text-xs font-bold flex items-center justify-between gap-2 shadow-2xs ${
+                settings.banner_announcement_type === "emergency"
+                  ? "bg-red-600 text-white border-red-700"
+                  : settings.banner_announcement_type === "warning"
+                  ? "bg-amber-500 text-slate-950 border-amber-600"
+                  : settings.banner_announcement_type === "success"
+                  ? "bg-emerald-600 text-white border-emerald-700"
+                  : "bg-blue-600 text-white border-blue-700"
+              }`}
+            >
+              <span>{settings.banner_announcement_text || "No announcement text configured."}</span>
+              <span className="text-[10px] uppercase font-black bg-white/20 px-2 py-0.5 rounded">Live</span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
+            <div>
+              <label className="font-bold text-slate-800 block mb-1">
+                Announcement Text (Bangla / English)
+              </label>
+              <textarea
+                rows={3}
+                value={settings.banner_announcement_text || ""}
+                onChange={(e) => setSettings({ ...settings, banner_announcement_text: e.target.value })}
+                placeholder="e.g. ⚡ 24/7 Monsoon Emergency Electrician & Plumbing Support active in Sirajganj"
+                className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-rose-600 focus:outline-none"
+              />
             </div>
 
-            <div className="overflow-y-auto space-y-4 py-3 pr-1 flex-1">
-              {/* Quick Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">Banner Style Theme</label>
+                <select
+                  value={settings.banner_announcement_type || "emergency"}
+                  onChange={(e) => setSettings({ ...settings, banner_announcement_type: e.target.value })}
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:border-rose-600 focus:outline-none cursor-pointer"
+                >
+                  <option value="emergency">🚨 Emergency Red</option>
+                  <option value="warning">⚠️ Warning / Advisory Amber</option>
+                  <option value="info">ℹ️ Informational Blue</option>
+                  <option value="success">✅ Success / Promo Green</option>
+                </select>
+              </div>
+
+              <div className="flex items-center sm:items-end pb-2">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={settings.banner_announcement_active === "true"}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        banner_announcement_active: e.target.checked ? "true" : "false",
+                      })
+                    }
+                    className="w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-slate-800">
+                    Enable Banner on SohojService
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <button
+                type="submit"
+                disabled={savingSettings}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs px-6 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                {savingSettings ? "Saving..." : "✓ Publish Announcement"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: SYSTEM SETTINGS & DATA BACKUP */}
+      {/* ========================================================================= */}
+      {tab === "settings" && (
+        <div className="space-y-6 motion-enter">
+          <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-5">
+            <div className="pb-3 border-b border-slate-100">
+              <h2 className="font-display font-extrabold text-base sm:text-lg text-slate-900">
+                ⚙️ Platform Business Rules & Support Settings
+              </h2>
+              <p className="text-xs text-slate-500">Configure central hotline, WhatsApp gateway, and base fees.</p>
+            </div>
+
+            <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-500">Total Jobs</p>
-                  <p className="font-bold text-base text-slate-900">{selectedProfessional.stats.totalBookings}</p>
+                  <label className="font-bold text-slate-800 block mb-1">
+                    Emergency Hotline Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.emergency_hotline || ""}
+                    onChange={(e) => setSettings({ ...settings, emergency_hotline: e.target.value })}
+                    placeholder="01700-000000"
+                    className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900 focus:border-indigo-600 focus:outline-none"
+                  />
                 </div>
+
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-500">Completed</p>
-                  <p className="font-bold text-base text-emerald-700">{selectedProfessional.stats.completedBookings}</p>
+                  <label className="font-bold text-slate-800 block mb-1">
+                    Support WhatsApp Number (International)
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.support_whatsapp || ""}
+                    onChange={(e) => setSettings({ ...settings, support_whatsapp: e.target.value })}
+                    placeholder="8801700000000"
+                    className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900 focus:border-indigo-600 focus:outline-none"
+                  />
                 </div>
+
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-500">Reviews</p>
-                  <p className="font-bold text-base text-slate-900">{selectedProfessional.stats.reviewCount}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-500">Avg Rating</p>
-                  <p className="font-bold text-base text-amber-700">★ {selectedProfessional.stats.avgRating?.toFixed(1) || "N/A"}</p>
+                  <label className="font-bold text-slate-800 block mb-1">
+                    Default Visiting Base Fee (BDT ৳)
+                  </label>
+                  <input
+                    type="number"
+                    value={settings.default_visiting_fee || "300"}
+                    onChange={(e) => setSettings({ ...settings, default_visiting_fee: e.target.value })}
+                    placeholder="300"
+                    className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900 focus:border-indigo-600 focus:outline-none"
+                  />
                 </div>
               </div>
 
-              {/* Editable Form */}
-              <div className="space-y-3 text-xs">
-                <div className="flex flex-col sm:flex-row gap-2">
+              <div className="pt-3 border-t border-slate-100 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={savingSettings}
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs px-6 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
+                >
+                  {savingSettings ? "Saving..." : "💾 Save Business Rules"}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Database Backup Exporter */}
+          <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div>
+              <h3 className="font-display font-extrabold text-base text-slate-900">
+                📦 1-Click Database Export & Backup
+              </h3>
+              <p className="text-xs text-slate-500">Download formatted CSV reports of your live database tables.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleExportInstantCSV}
+                className="p-4 bg-amber-50/70 hover:bg-amber-100 border border-amber-200 rounded-2xl text-left transition-all cursor-pointer"
+              >
+                <p className="font-bold text-xs text-amber-950">📥 Instant Bookings CSV</p>
+                <span className="text-[11px] text-amber-700 block mt-0.5">{instantBookingsList.length} records</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportProsCSV}
+                className="p-4 bg-blue-50/70 hover:bg-blue-100 border border-blue-200 rounded-2xl text-left transition-all cursor-pointer"
+              >
+                <p className="font-bold text-xs text-blue-950">📥 Professionals CSV</p>
+                <span className="text-[11px] text-blue-700 block mt-0.5">{professionals.length} records</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportUsersCSV}
+                className="p-4 bg-purple-50/70 hover:bg-purple-100 border border-purple-200 rounded-2xl text-left transition-all cursor-pointer"
+              >
+                <p className="font-bold text-xs text-purple-950">📥 User Accounts CSV</p>
+                <span className="text-[11px] text-purple-700 block mt-0.5">{users.length} records</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 6: PROFESSIONALS DIRECTORY */}
+      {/* ========================================================================= */}
+      {tab === "professionals" && (
+        <div className="space-y-4 motion-enter">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-blue-50/80 border border-blue-200/90 rounded-2xl">
+            <div>
+              <h2 className="font-display font-extrabold text-base text-blue-950">
+                Service Professionals Directory ({displayedProfessionals.length})
+              </h2>
+              <p className="text-xs text-blue-800 font-medium mt-0.5">
+                Verify listings, edit visiting rates, manage locations, and monitor technician performance.
+              </p>
+            </div>
+            <button
+              onClick={handleExportProsCSV}
+              className="bg-white hover:bg-blue-100/50 text-blue-900 border border-blue-300 text-xs font-bold px-3 py-2 rounded-xl shadow-2xs transition-all cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+            >
+              <span>📥</span>
+              <span>Export Pros CSV</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {displayedProfessionals.map((pro) => (
+              <div
+                key={pro.id}
+                onClick={() => openProfessionalDetails(pro.id)}
+                className="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs hover:shadow-md transition-all flex flex-col justify-between space-y-3 cursor-pointer group"
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <ProfilePhoto name={pro.name} photoUrl={pro.photoUrl} size="md" />
+                      <div>
+                        <h3 className="font-display font-bold text-sm text-slate-900 group-hover:text-blue-600 transition-colors">
+                          {pro.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 font-medium">{pro.category?.nameEn}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap text-[10px]">
+                    <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-semibold">
+                      📍 {pro.area}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-md font-bold ${
+                        pro.isVerified ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-amber-50 text-amber-800 border border-amber-200"
+                      }`}
+                    >
+                      {pro.isVerified ? "✓ Verified" : "⏳ Pending"}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-md font-bold ${
+                        pro.isAvailable ? "bg-blue-50 text-blue-800" : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {pro.isAvailable ? "Active" : "Offline"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
-                    onClick={() => toggleVerify(selectedProfessional.id, selectedProfessional.isVerified)}
-                    className={`flex-1 px-4 py-2.5 rounded-xl font-bold cursor-pointer transition-all text-center ${
-                      selectedProfessional.isVerified
-                        ? "bg-emerald-600 text-white"
-                        : "bg-amber-100 text-amber-950 border border-amber-300"
+                    onClick={() => toggleVerify(pro.id, pro.isVerified)}
+                    className={`text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                      pro.isVerified
+                        ? "text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200"
+                        : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
                     }`}
                   >
-                    {selectedProfessional.isVerified ? "✓ Verified on Website" : "⚠️ Review (Click to Verify)"}
+                    {pro.isVerified ? "Unverify" : "✓ Verify"}
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => toggleAvailability(selectedProfessional.id, selectedProfessional.isAvailable)}
-                    className={`flex-1 px-4 py-2.5 rounded-xl font-bold cursor-pointer transition-all text-center ${
-                      selectedProfessional.isAvailable
-                        ? "bg-emerald-50 text-emerald-900 border border-emerald-300"
-                        : "bg-slate-200 text-slate-700"
-                    }`}
+                    onClick={() => openProfessionalDetails(pro.id)}
+                    className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
                   >
-                    {selectedProfessional.isAvailable ? "● Available for Jobs" : "Unavailable"}
+                    Edit Profile →
                   </button>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-bold text-slate-800 block mb-1">Upazila / Area</label>
-                    <BangladeshUpazilaInput
-                      value={editingProArea}
-                      onChange={setEditingProArea}
-                      placeholder="Search upazila"
-                      className="w-full border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900"
-                    />
-                  </div>
+      {/* ========================================================================= */}
+      {/* TAB 7: DIRECT CUSTOMER BOOKINGS */}
+      {/* ========================================================================= */}
+      {tab === "bookings" && (
+        <div className="space-y-4 motion-enter">
+          <div className="flex items-center justify-between p-4 bg-slate-100 rounded-2xl">
+            <h2 className="font-display font-extrabold text-base text-slate-900">
+              Direct Scheduled Bookings ({displayedBookings.length})
+            </h2>
+          </div>
 
-                  <div>
-                    <label className="font-bold text-slate-800 block mb-1">City / District</label>
-                    <input
-                      value={editingProCity}
-                      onChange={(e) => setEditingProCity(e.target.value)}
-                      className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
-                    />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {displayedBookings.map((b) => (
+              <div key={b.id} className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900">{b.customerName}</span>
+                  <span className="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded-full">{b.status}</span>
+                </div>
+                <p className="text-xs text-slate-600 line-clamp-2">{b.problemNote}</p>
+                <p className="text-[11px] text-slate-400 font-medium">📍 {b.address}</p>
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                  {b.status !== "COMPLETED" && (
+                    <button
+                      type="button"
+                      onClick={() => updateBookingStatus(b.id, "COMPLETED")}
+                      className="text-[11px] font-bold bg-emerald-600 text-white px-2.5 py-1 rounded-lg cursor-pointer"
+                    >
+                      ✓ Complete
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => deleteBooking(b.id)}
+                    className="text-[11px] font-bold text-red-600 hover:underline cursor-pointer"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 8: USERS MANAGEMENT */}
+      {/* ========================================================================= */}
+      {tab === "users" && (
+        <div className="space-y-4 motion-enter">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-purple-50/80 border border-purple-200/90 rounded-2xl">
+            <div>
+              <h2 className="font-display font-extrabold text-base text-purple-950">
+                Registered Users Directory ({displayedUsers.length})
+              </h2>
+              <p className="text-xs text-purple-800 font-medium mt-0.5">
+                Manage user permissions, roles (Customer, Professional, Admin), and contact credentials.
+              </p>
+            </div>
+            <button
+              onClick={handleExportUsersCSV}
+              className="bg-white hover:bg-purple-100/50 text-purple-900 border border-purple-300 text-xs font-bold px-3 py-2 rounded-xl shadow-2xs transition-all cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+            >
+              <span>📥</span>
+              <span>Export Users CSV</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {displayedUsers.map((u) => (
+              <div
+                key={u.id}
+                onClick={() => openUserDetails(u)}
+                className="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs hover:shadow-md transition-all flex flex-col justify-between space-y-3 cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <ProfilePhoto name={u.name} photoUrl={u.photoUrl} size="md" />
+                  <div className="truncate">
+                    <h3 className="font-display font-bold text-sm text-slate-900 truncate group-hover:text-purple-700">
+                      {u.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 truncate">{u.email}</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-bold text-slate-800 block mb-1">Experience (Years)</label>
-                    <input
-                      type="number"
-                      value={editingProExp}
-                      onChange={(e) => setEditingProExp(Number(e.target.value))}
-                      className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-800 block mb-1">Visiting Rate (BDT)</label>
-                    <input
-                      type="number"
-                      value={editingProRate}
-                      onChange={(e) => setEditingProRate(e.target.value === "" ? "" : Number(e.target.value))}
-                      className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
-                    />
-                  </div>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      u.role === "ADMIN"
+                        ? "bg-purple-100 text-purple-900 font-black"
+                        : u.role === "PROFESSIONAL"
+                        ? "bg-emerald-100 text-emerald-900"
+                        : "bg-blue-100 text-blue-900"
+                    }`}
+                  >
+                    {u.role}
+                  </span>
+                  <button type="button" className="text-blue-600 font-bold text-[11px] hover:underline">
+                    Edit User →
+                  </button>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
+      {/* ========================================================================= */}
+      {/* TAB 9: COMPLETED TASKS ARCHIVE */}
+      {/* ========================================================================= */}
+      {tab === "completedTasks" && (
+        <div className="space-y-4 motion-enter">
+          <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl">
+            <h2 className="font-display font-extrabold text-base text-emerald-950">
+              Completed Tasks Archive ({allDoneTasks.length})
+            </h2>
+            <p className="text-xs text-emerald-800 font-medium mt-0.5">
+              Historical ledger of all resolved emergency and scheduled customer jobs.
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            {allDoneTasks.map((t) => (
+              <div key={t.id} className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between gap-3 text-xs">
                 <div>
-                  <label className="font-bold text-slate-800 block mb-1">Bio / Profile Description</label>
-                  <textarea
-                    rows={3}
-                    value={editingProBio}
-                    onChange={(e) => setEditingProBio(e.target.value)}
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900">{t.customerName}</span>
+                    <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold text-[10px]">{t.category}</span>
+                  </div>
+                  <p className="text-slate-500 text-[11px] mt-0.5">📍 {t.location}</p>
+                </div>
+                <span className="text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                  ✓ Done ({new Date(t.date).toLocaleDateString()})
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 10: SERVICE CATEGORIES */}
+      {/* ========================================================================= */}
+      {tab === "categories" && (
+        <div className="space-y-4 motion-enter">
+          <div className="flex items-center justify-between p-4 bg-purple-50/70 border border-purple-200/80 rounded-2xl">
+            <div>
+              <h2 className="font-display font-extrabold text-base text-purple-950">
+                Manage Service Categories ({categoriesList.length})
+              </h2>
+              <p className="text-xs text-purple-800 font-medium">Add and edit public service trades on SohojService.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => loadCategories()}
+              className="bg-white hover:bg-purple-100 text-purple-900 border border-purple-300 text-xs font-bold px-3 py-2 rounded-xl cursor-pointer"
+            >
+              🔄 Refresh
+            </button>
+          </div>
+
+          {/* Direct Category Entry */}
+          <div
+            id="category-entry-section"
+            className={`p-4 sm:p-6 rounded-2xl border transition-all shadow-sm space-y-4 ${
+              editingCategory ? "bg-amber-50/70 border-amber-300 ring-2 ring-amber-400/50" : "bg-white border-purple-200"
+            }`}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="font-display font-extrabold text-sm sm:text-base text-slate-900">
+                {editingCategory ? `Edit Category: ${editingCategory.nameEn}` : "Add New Category"}
+              </h3>
+              {editingCategory && (
+                <button
+                  type="button"
+                  onClick={() => setEditingCategory(null)}
+                  className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1 rounded-lg cursor-pointer"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+
+            {createCatError && <p className="text-xs text-red-600 font-bold">{createCatError}</p>}
+            {editCatError && <p className="text-xs text-red-600 font-bold">{editCatError}</p>}
+
+            <form onSubmit={editingCategory ? handleSaveCategoryEdits : handleCreateCategory} className="space-y-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input
+                  required
+                  placeholder="Category Name (English)"
+                  value={editingCategory ? editCatNameEn : newCatNameEn}
+                  onChange={(e) => (editingCategory ? setEditCatNameEn(e.target.value) : setNewCatNameEn(e.target.value))}
+                  className="border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                />
+                <input
+                  required
+                  placeholder="Category Name (Bangla)"
+                  value={editingCategory ? editCatNameBn : newCatNameBn}
+                  onChange={(e) => (editingCategory ? setEditCatNameBn(e.target.value) : setNewCatNameBn(e.target.value))}
+                  className="border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                />
+                <select
+                  value={editingCategory ? editCatIcon : newCatIcon}
+                  onChange={(e) => (editingCategory ? setEditCatIcon(e.target.value) : setNewCatIcon(e.target.value))}
+                  className="border border-slate-300 bg-white rounded-xl p-2.5 text-xs font-bold text-slate-900 cursor-pointer"
+                >
+                  {ICON_THEMES.map((theme) => (
+                    <option key={theme.id} value={theme.id}>
+                      {theme.emoji} {theme.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={creatingCategory || savingCategory}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer"
+                >
+                  {editingCategory ? "Save Changes" : "+ Add Category"}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Categories Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {displayedCategories.map((cat) => (
+              <div key={cat.id} className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-2 flex flex-col justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-lg">
+                    {getCategoryEmoji(cat.icon, cat.slug)}
+                  </span>
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-900">{cat.nameEn}</h4>
+                    <p className="text-[11px] text-slate-500">{cat.nameBn}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => openEditCategoryModal(cat)}
+                    className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCategory(cat.id, cat.nameEn)}
+                    className="text-[11px] font-bold text-red-600 hover:underline cursor-pointer"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 11: AREAS & UPAZILAS */}
+      {/* ========================================================================= */}
+      {tab === "locations" && (
+        <div className="space-y-4 motion-enter">
+          <div className="flex items-center justify-between p-4 bg-teal-50/80 border border-teal-200/90 rounded-2xl">
+            <div>
+              <h2 className="font-display font-extrabold text-base text-teal-950">
+                Service Areas & Upazilas ({locationsList.length})
+              </h2>
+              <p className="text-xs text-teal-800 font-medium">Manage all districts and upazilas across Bangladesh.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => loadLocations()}
+              className="bg-white hover:bg-teal-100 text-teal-950 border border-teal-300 text-xs font-bold px-3 py-2 rounded-xl cursor-pointer"
+            >
+              🔄 Refresh
+            </button>
+          </div>
+
+          {/* Direct Location Entry */}
+          <div
+            id="location-entry-section"
+            className={`p-4 sm:p-6 rounded-2xl border transition-all shadow-sm space-y-4 ${
+              editingLocation ? "bg-amber-50/70 border-amber-300 ring-2 ring-amber-400/50" : "bg-white border-teal-200"
+            }`}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="font-display font-extrabold text-sm sm:text-base text-slate-900">
+                {editingLocation ? `Edit Area: ${editingLocation.nameEn}` : "Add New Area / Upazila"}
+              </h3>
+              {editingLocation && (
+                <button
+                  type="button"
+                  onClick={resetLocationForm}
+                  className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1 rounded-lg cursor-pointer"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+
+            {locationError && <p className="text-xs text-red-600 font-bold">{locationError}</p>}
+
+            <form onSubmit={handleSaveLocation} className="space-y-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <input
+                  required
+                  placeholder="Area Name (English)"
+                  value={locNameEn}
+                  onChange={(e) => setLocNameEn(e.target.value)}
+                  className="border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                />
+                <input
+                  required
+                  placeholder="Area Name (Bangla)"
+                  value={locNameBn}
+                  onChange={(e) => setLocNameBn(e.target.value)}
+                  className="border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                />
+                <input
+                  required
+                  placeholder="District / Jela"
+                  value={locDistrict}
+                  onChange={(e) => setLocDistrict(e.target.value)}
+                  className="border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                />
+                <select
+                  value={locDivision}
+                  onChange={(e) => setLocDivision(e.target.value)}
+                  className="border border-slate-300 bg-white rounded-xl p-2.5 text-xs font-bold text-slate-900 cursor-pointer"
+                >
+                  <option value="Rajshahi">Rajshahi</option>
+                  <option value="Dhaka">Dhaka</option>
+                  <option value="Chattogram">Chattogram</option>
+                  <option value="Khulna">Khulna</option>
+                  <option value="Sylhet">Sylhet</option>
+                  <option value="Barishal">Barishal</option>
+                  <option value="Rangpur">Rangpur</option>
+                  <option value="Mymensingh">Mymensingh</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="Latitude (Optional)"
+                  value={locLat}
+                  onChange={(e) => setLocLat(e.target.value === "" ? "" : Number(e.target.value))}
+                  className="border border-slate-300 bg-white rounded-xl p-2 text-xs text-slate-900"
+                />
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="Longitude (Optional)"
+                  value={locLng}
+                  onChange={(e) => setLocLng(e.target.value === "" ? "" : Number(e.target.value))}
+                  className="border border-slate-300 bg-white rounded-xl p-2 text-xs text-slate-900"
+                />
+                <button
+                  type="button"
+                  onClick={handleDetectCurrentGPS}
+                  className="bg-teal-50 text-teal-800 border border-teal-200 rounded-xl px-3 py-2 text-xs font-bold cursor-pointer"
+                >
+                  {gpsDetecting ? "Detecting..." : "📍 Detect Current GPS"}
+                </button>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={savingLocation}
+                  className="bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer"
+                >
+                  {editingLocation ? "Save Changes" : "+ Add Area"}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Locations Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {displayedLocations.map((loc) => (
+              <div key={loc.id} className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-2 flex flex-col justify-between">
+                <div>
+                  <h4 className="font-bold text-xs text-slate-900">{loc.nameEn}</h4>
+                  <p className="text-[11px] text-slate-500">{loc.nameBn}</p>
+                  <span className="text-[10px] text-teal-800 font-bold bg-teal-50 px-2 py-0.5 rounded-md inline-block mt-1">
+                    🏛️ {loc.district} · {loc.division}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => openEditLocation(loc)}
+                    className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                  {loc.isCustom && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteLocation(loc.id, loc.nameEn)}
+                      className="text-[11px] font-bold text-red-600 hover:underline cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* DETAIL MODAL: EDIT PROFESSIONAL */}
+      {/* ========================================================================= */}
+      {selectedProfessional && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/75 backdrop-blur-xs motion-enter">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <ProfilePhoto name={selectedProfessional.user.name} photoUrl={selectedProfessional.photoUrl} size="md" />
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900">{selectedProfessional.user.name}</h3>
+                  <p className="text-xs text-blue-700 font-bold">{selectedProfessional.category.nameEn}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedProfessional(null)} className="text-slate-400 hover:text-slate-700 font-bold text-base p-1">✕</button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">Service Area (Upazila)</label>
+                <BangladeshUpazilaInput
+                  value={editingProArea}
+                  onChange={setEditingProArea}
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">Experience (Years)</label>
+                  <input
+                    type="number"
+                    value={editingProExp}
+                    onChange={(e) => setEditingProExp(Number(e.target.value))}
+                    className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">Visiting Rate (BDT ৳)</label>
+                  <input
+                    type="number"
+                    value={editingProRate}
+                    onChange={(e) => setEditingProRate(e.target.value === "" ? "" : Number(e.target.value))}
                     className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
                   />
                 </div>
               </div>
+
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">Professional Bio</label>
+                <textarea
+                  rows={2}
+                  value={editingProBio}
+                  onChange={(e) => setEditingProBio(e.target.value)}
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                />
+              </div>
             </div>
 
-            {/* Action Bar */}
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-slate-100 shrink-0">
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => deleteProfessionalListing(selectedProfessional.id)}
-                className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer text-center py-1.5"
+                className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
               >
-                🗑️ Delete Professional Listing
+                Delete Listing
               </button>
-
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedProfessional(null)}
-                  className="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer text-center"
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2160,9 +2796,9 @@ export default function AdminDashboard() {
                   type="button"
                   disabled={savingPro}
                   onClick={saveProfessionalEdits}
-                  className="flex-1 sm:flex-initial bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 text-xs font-bold rounded-xl shadow-xs cursor-pointer text-center"
+                  className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 text-xs font-bold rounded-xl cursor-pointer"
                 >
-                  {savingPro ? "Saving..." : "💾 Save Changes"}
+                  {savingPro ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </div>
@@ -2170,27 +2806,24 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL 2: EDIT USER PROFILE */}
+      {/* ========================================================================= */}
+      {/* DETAIL MODAL: EDIT USER */}
+      {/* ========================================================================= */}
       {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs motion-enter">
-          <div className="relative w-full max-w-md sm:max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 flex flex-col max-h-[88dvh] overflow-hidden">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
-              <div className="flex items-center gap-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/75 backdrop-blur-xs motion-enter">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-5 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
                 <ProfilePhoto name={selectedUser.name} photoUrl={selectedUser.photoUrl} size="md" />
                 <div>
-                  <h2 className="font-display font-extrabold text-base sm:text-xl text-slate-900">{selectedUser.name}</h2>
-                  <p className="text-xs text-slate-500 break-all">{selectedUser.email}</p>
+                  <h3 className="font-extrabold text-base text-slate-900">{selectedUser.name}</h3>
+                  <p className="text-xs text-slate-500">{selectedUser.email}</p>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="text-slate-400 hover:text-slate-700 text-lg font-bold p-1 rounded-lg cursor-pointer"
-              >
-                ✕
-              </button>
+              <button onClick={() => setSelectedUser(null)} className="text-slate-400 hover:text-slate-700 font-bold text-base p-1">✕</button>
             </div>
 
-            <div className="overflow-y-auto space-y-3 py-3 pr-1 flex-1 text-xs">
+            <div className="space-y-3 text-xs">
               <div>
                 <label className="font-bold text-slate-800 block mb-1">Full Name</label>
                 <input
@@ -2205,7 +2838,6 @@ export default function AdminDashboard() {
                 <input
                   value={editingUserPhone}
                   onChange={(e) => setEditingUserPhone(e.target.value)}
-                  placeholder="01XXXXXXXXX"
                   className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
                 />
               </div>
@@ -2215,35 +2847,28 @@ export default function AdminDashboard() {
                 <select
                   value={editingUserRole}
                   onChange={(e) => setEditingUserRole(e.target.value as any)}
-                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900 font-bold"
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs font-bold text-slate-900 cursor-pointer"
                 >
                   <option value="CUSTOMER">CUSTOMER (Can book services & submit reviews)</option>
                   <option value="PROFESSIONAL">PROFESSIONAL (Can offer services & list profile)</option>
                   <option value="ADMIN">ADMIN (Full control center access)</option>
                 </select>
               </div>
-
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-600 text-[11px] font-medium space-y-1">
-                <p>User ID: <span className="font-mono text-slate-900 break-all">{selectedUser.id}</span></p>
-                <p>Joined: {new Date(selectedUser.createdAt).toLocaleDateString()}</p>
-              </div>
             </div>
 
-            {/* Action Bar */}
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-slate-100 shrink-0">
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => deleteUser(selectedUser.id)}
-                className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer text-center py-1.5"
+                className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
               >
-                🗑️ Delete User
+                Delete User
               </button>
-
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedUser(null)}
-                  className="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer text-center"
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2251,9 +2876,9 @@ export default function AdminDashboard() {
                   type="button"
                   disabled={savingUser}
                   onClick={saveUserEdits}
-                  className="flex-1 sm:flex-initial bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 text-xs font-bold rounded-xl shadow-xs cursor-pointer text-center"
+                  className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 text-xs font-bold rounded-xl cursor-pointer"
                 >
-                  {savingUser ? "Saving..." : "💾 Save Changes"}
+                  {savingUser ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </div>

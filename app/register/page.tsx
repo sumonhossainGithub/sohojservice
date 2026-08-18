@@ -1,12 +1,34 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import BrandLogo from "@/components/BrandLogo";
-import GoogleAuthButton from "@/components/GoogleAuthButton";
-import { createClient } from "@/lib/supabase/client";
+
+type CategoryOption = {
+  id: string;
+  slug: string;
+  nameEn: string;
+  nameBn: string;
+  icon: string;
+};
+
+const BANGLADESH_UPAZILAS = [
+  "Sirajganj Sadar",
+  "Belkuchi",
+  "Kamarkhanda",
+  "Kazipur",
+  "Rayganj",
+  "Shahjadpur",
+  "Tarash",
+  "Ullapara",
+  "Chauhali",
+  "Dhaka North",
+  "Dhaka South",
+  "Bogra Sadar",
+  "Pabna Sadar",
+];
 
 function RegisterForm() {
   const router = useRouter();
@@ -14,321 +36,476 @@ function RegisterForm() {
   const { refresh } = useAuth();
   const defaultRole = params.get("role") === "professional" ? "PROFESSIONAL" : "CUSTOMER";
 
+  // Account Type
+  const [role, setRole] = useState<"CUSTOMER" | "PROFESSIONAL">(defaultRole);
+
+  // Common Fields
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"CUSTOMER" | "PROFESSIONAL">(defaultRole);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(true);
+
+  // Professional-Specific Fields
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [categoryId, setCategoryId] = useState("");
+  const [area, setArea] = useState("Sirajganj Sadar");
+  const [yearsExperience, setYearsExperience] = useState<number>(2);
+  const [ratePerVisit, setRatePerVisit] = useState<number>(300);
+  const [bio, setBio] = useState("");
+
+  // Status
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Verification state
-  const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const [resendMsg, setResendMsg] = useState("");
+  // Load categories for professional signup
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const res = await fetch("/api/categories");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setCategories(data);
+            setCategoryId(data[0].id);
+          }
+        }
+      } catch {
+        // Fallback default categories
+      }
+    }
+    loadCategories();
+  }, []);
+
+  // Password strength calculation
+  const getPasswordStrength = () => {
+    if (!password) return { score: 0, label: "", color: "" };
+    let score = 0;
+    if (password.length >= 6) score++;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password) || /[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    if (score <= 1) return { score: 1, label: "Weak", color: "bg-red-500 text-red-600" };
+    if (score === 2) return { score: 2, label: "Fair", color: "bg-amber-500 text-amber-600" };
+    if (score === 3) return { score: 3, label: "Good", color: "bg-blue-500 text-blue-600" };
+    return { score: 4, label: "Strong", color: "bg-emerald-500 text-emerald-600" };
+  };
+
+  const strength = getPasswordStrength();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    try {
-      const supabase = createClient();
-      const cleanEmail = email.trim().toLowerCase();
+    // Validations
+    if (!agreeTerms) {
+      setLoading(false);
+      setError("Please accept the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
 
-      // Sign up with Supabase Auth (enforces email verification)
-      const { data, error: supaError } = await supabase.auth.signUp({
-        email: cleanEmail,
+    if (password !== confirmPassword) {
+      setLoading(false);
+      setError("Passwords do not match. Please re-enter your password.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setLoading(false);
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+
+    const cleanPhone = phone.replace(/\D/g, "");
+    if (cleanPhone.length < 10) {
+      setLoading(false);
+      setError("Please enter a valid 11-digit mobile number (e.g. 017XXXXXXXX).");
+      return;
+    }
+
+    try {
+      const payload = {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
         password,
-        options: {
-          data: {
-            full_name: name.trim(),
-            name: name.trim(),
-            phone: phone.trim() || null,
-            role,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback?role=${role}`,
-        },
+        role,
+        ...(role === "PROFESSIONAL"
+          ? {
+              categoryId: categoryId || (categories[0]?.id ?? undefined),
+              area,
+              yearsExperience: Number(yearsExperience),
+              ratePerVisit: Number(ratePerVisit),
+              bio: bio.trim() || undefined,
+            }
+          : {}),
+      };
+
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
-      if (supaError) {
+      const data = await res.json();
+
+      if (!res.ok) {
         setLoading(false);
-        setError(supaError.message || "Failed to create account. Please try again.");
-        return;
-      }
-
-      // If user requires email confirmation (session is null or identities unconfirmed)
-      if (data.user && !data.session) {
-        setLoading(false);
-        setEmailSentTo(cleanEmail);
-        startCooldown();
-        return;
-      }
-
-      // If already confirmed or session returned directly, sync to DB
-      const syncRes = await fetch("/api/auth/sync", { method: "POST" });
-      setLoading(false);
-
-      if (!syncRes.ok) {
-        setError("Account created, but database session sync failed. Please log in.");
+        setError(data.error || "Registration failed. Please check your details.");
         return;
       }
 
       await refresh();
-      router.push(role === "PROFESSIONAL" ? "/dashboard/professional" : "/dashboard/customer");
-      router.refresh();
+      setLoading(false);
+
+      if (role === "PROFESSIONAL") {
+        window.location.href = "/dashboard/professional?welcome=true";
+      } else {
+        window.location.href = "/dashboard/customer";
+      }
     } catch (err: unknown) {
       setLoading(false);
-      setError(err instanceof Error ? err.message : "Something went wrong during registration.");
+      setError(
+        err instanceof Error ? err.message : "Failed to connect to registration service."
+      );
     }
-  }
-
-  function startCooldown() {
-    setResendCooldown(60);
-    const interval = setInterval(() => {
-      setResendCooldown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }
-
-  async function handleResendEmail() {
-    if (!emailSentTo || resendCooldown > 0) return;
-    try {
-      setResendMsg("");
-      const supabase = createClient();
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: emailSentTo,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?role=${role}`,
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-      } else {
-        setResendMsg("Verification email resent! Please check your inbox.");
-        startCooldown();
-      }
-    } catch {
-      setError("Failed to resend verification email.");
-    }
-  }
-
-  // Render "Email Verification Sent" confirmation screen
-  if (emailSentTo) {
-    return (
-      <div className="max-w-md mx-auto px-4 py-16 motion-enter">
-        <div className="signplate p-8 bg-white shadow-xl border border-slate-200 space-y-6 text-center">
-          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto ring-8 ring-blue-50/50">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
-
-          <div className="space-y-2">
-            <h1 className="font-display text-2xl font-extrabold text-slate-900">
-              Verify Your Email
-            </h1>
-            <p className="text-sm text-slate-600">
-              We sent a verification link to:
-            </p>
-            <p className="text-sm font-bold text-slate-900 bg-slate-100 py-1.5 px-3 rounded-lg inline-block break-all">
-              {emailSentTo}
-            </p>
-            <p className="text-xs text-slate-500 pt-2">
-              Please click the link inside your email to activate your account. Check your Spam or Promotions folder if you don&apos;t see it.
-            </p>
-          </div>
-
-          {resendMsg && (
-            <p className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-300 p-2.5 rounded-xl font-bold">
-              {resendMsg}
-            </p>
-          )}
-
-          {error && (
-            <p className="text-xs text-red-900 bg-red-50 border border-red-300 p-2.5 rounded-xl font-bold">
-              {error}
-            </p>
-          )}
-
-          <div className="space-y-3 pt-2">
-            <button
-              type="button"
-              onClick={handleResendEmail}
-              disabled={resendCooldown > 0}
-              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-3 rounded-xl transition-all disabled:opacity-50 cursor-pointer"
-            >
-              {resendCooldown > 0
-                ? `Resend Email in ${resendCooldown}s`
-                : "Resend Verification Email"}
-            </button>
-
-            <div className="flex items-center justify-between text-xs pt-2">
-              <button
-                type="button"
-                onClick={() => setEmailSentTo(null)}
-                className="text-slate-600 hover:text-slate-900 font-medium underline cursor-pointer"
-              >
-                ← Change email address
-              </button>
-              <Link href="/login" className="text-blue-700 font-bold hover:underline">
-                Go to Login →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16 motion-enter">
-      <div className="signplate p-8 bg-white shadow-xl border border-slate-200 space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-block mb-1">
-            <BrandLogo compact />
-          </div>
-          <h1 className="font-display text-2xl font-extrabold text-[var(--color-ink)]">
-            Create an Account
-          </h1>
-          <p className="text-xs text-slate-500">
-            100% Free for everyone — verified emails ensure safe local services
-          </p>
-        </div>
-
-        {/* Role Toggle Selector */}
-        <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
-          <button
-            type="button"
-            onClick={() => setRole("CUSTOMER")}
-            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              role === "CUSTOMER"
-                ? "bg-white text-[var(--color-teal)] shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            🙋 I Need a Service
-          </button>
-          <button
-            type="button"
-            onClick={() => setRole("PROFESSIONAL")}
-            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              role === "PROFESSIONAL"
-                ? "bg-white text-[var(--color-teal)] shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            🛠️ I Offer a Service
-          </button>
-        </div>
-
-        {/* Google OAuth Button */}
-        <div className="space-y-3">
-          <GoogleAuthButton
-            text={`Sign up with Google as ${role === "PROFESSIONAL" ? "Pro" : "Customer"}`}
-            role={role}
-            onError={(msg) => setError(msg)}
-          />
-
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-slate-200"></div>
-            <span className="flex-shrink mx-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Or with email
-            </span>
-            <div className="flex-grow border-t border-slate-200"></div>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-3.5">
-          <div>
-            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide mb-1">
-              Full Name <span className="text-red-600">*</span>
-            </label>
-            <input
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Sumon Hossain"
-              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide mb-1">
-              Real Email Address <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@gmail.com"
-              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
-            />
-            <span className="text-[11px] text-slate-500 mt-1 block">
-              We&apos;ll send a verification link to confirm this email.
-            </span>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide mb-1">
-              Phone Number (Optional)
-            </label>
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="01XXXXXXXXX"
-              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wide mb-1">
-              Password (Min 6 characters) <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
-            />
-          </div>
-
-          {error && (
-            <p className="text-xs text-red-900 bg-red-50 border border-red-300 p-3 rounded-xl font-bold">
-              {error}
+    <div className="min-h-[90vh] flex items-center justify-center px-4 py-12 bg-gradient-to-b from-slate-50 to-white">
+      <div className="w-full max-w-xl">
+        {/* Main Card */}
+        <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-xl shadow-slate-200/60 border border-slate-200/80 space-y-6 motion-enter">
+          {/* Header */}
+          <div className="text-center space-y-2">
+            <div className="inline-flex justify-center mb-1">
+              <BrandLogo compact />
+            </div>
+            <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              Create Your Account
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+              Join SohojService — Sirajganj&apos;s leading local service marketplace
             </p>
-          )}
+          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-50 cursor-pointer"
-          >
-            {loading ? "Sending verification email..." : "Sign Up with Email"}
-          </button>
-        </form>
+          {/* Role Selector */}
+          <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200/80">
+            <button
+              type="button"
+              onClick={() => setRole("CUSTOMER")}
+              className={`flex flex-col items-center justify-center p-3.5 rounded-xl transition-all text-center cursor-pointer ${
+                role === "CUSTOMER"
+                  ? "bg-white text-blue-600 shadow-md ring-1 ring-slate-200/80 font-bold"
+                  : "text-slate-600 hover:text-slate-900 font-semibold"
+              }`}
+            >
+              <span className="text-xl mb-1">🙋</span>
+              <span className="text-xs sm:text-sm font-extrabold">I Need a Service</span>
+              <span className="text-[10px] text-slate-400 font-normal">Hire verified technicians</span>
+            </button>
 
-        <p className="text-center text-xs text-slate-600 font-medium">
-          Already have an account?{" "}
-          <Link href="/login" className="text-blue-700 font-bold hover:underline">
-            Log in
-          </Link>
-        </p>
+            <button
+              type="button"
+              onClick={() => setRole("PROFESSIONAL")}
+              className={`flex flex-col items-center justify-center p-3.5 rounded-xl transition-all text-center cursor-pointer ${
+                role === "PROFESSIONAL"
+                  ? "bg-white text-emerald-700 shadow-md ring-1 ring-slate-200/80 font-bold"
+                  : "text-slate-600 hover:text-slate-900 font-semibold"
+              }`}
+            >
+              <span className="text-xl mb-1">🛠️</span>
+              <span className="text-xs sm:text-sm font-extrabold">I Offer a Service</span>
+              <span className="text-[10px] text-slate-400 font-normal">Get daily customer jobs</span>
+            </button>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Full Name */}
+            <div>
+              <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+                Full Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Md. Sumon Hossain"
+                className="w-full rounded-xl border border-slate-300 bg-slate-50/50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all"
+              />
+            </div>
+
+            {/* Email & Phone (Grid on tablets/desktops) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Email */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+                  Email Address <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@gmail.com"
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50/50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all"
+                />
+              </div>
+
+              {/* Mobile Number */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+                  Mobile Number <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-xs font-bold text-slate-500 pointer-events-none">
+                    🇧🇩 +88
+                  </span>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="017XXXXXXXX"
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50/50 pl-16 pr-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Professional Specific Fields */}
+            {role === "PROFESSIONAL" && (
+              <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200/80 space-y-4 motion-enter">
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-900 uppercase tracking-wider">
+                  <span>🛠️</span> Professional Profile Setup
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Category */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Service Category <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={categoryId}
+                      onChange={(e) => setCategoryId(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-medium text-slate-900 focus:border-emerald-600 focus:outline-none cursor-pointer"
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.nameEn} ({cat.nameBn})
+                        </option>
+                      ))}
+                      {categories.length === 0 && (
+                        <>
+                          <option value="electrician">Electrician (ইলেকট্রিশিয়ান)</option>
+                          <option value="plumber">Plumber (প্লাম্বার)</option>
+                          <option value="ac-repair">AC & Refrigerator Repair</option>
+                          <option value="appliance">Home Appliance</option>
+                          <option value="painter">House Painter</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Area / Upazila */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Service Area / Upazila <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={area}
+                      onChange={(e) => setArea(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-medium text-slate-900 focus:border-emerald-600 focus:outline-none cursor-pointer"
+                    >
+                      {BANGLADESH_UPAZILAS.map((upazila) => (
+                        <option key={upazila} value={upazila}>
+                          {upazila}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Experience */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Experience (Years)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={40}
+                      value={yearsExperience}
+                      onChange={(e) => setYearsExperience(parseInt(e.target.value) || 0)}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Visiting Charge */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Visiting Fee (BDT ৳)
+                    </label>
+                    <input
+                      type="number"
+                      min={50}
+                      step={50}
+                      value={ratePerVisit}
+                      onChange={(e) => setRatePerVisit(parseInt(e.target.value) || 0)}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Short Bio */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    Short Bio & Expertise (Optional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="e.g. Expert in house wiring, IPS installation, fan & motor repair..."
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none resize-none placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Password & Confirm Password */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Password */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Min 6 characters"
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50/50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+                  Confirm Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter password"
+                  className={`w-full rounded-xl border bg-slate-50/50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-4 focus:outline-none transition-all ${
+                    confirmPassword && password !== confirmPassword
+                      ? "border-red-400 focus:border-red-600 focus:ring-red-100"
+                      : confirmPassword && password === confirmPassword
+                      ? "border-emerald-400 focus:border-emerald-600 focus:ring-emerald-100"
+                      : "border-slate-300 focus:border-blue-600 focus:ring-blue-100"
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Password Strength Indicator */}
+            {password && (
+              <div className="space-y-1 pt-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500 font-medium">Password Strength:</span>
+                  <span className={`font-bold ${strength.color.split(" ")[1]}`}>
+                    {strength.label}
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-1.5 h-1.5">
+                  {[1, 2, 3, 4].map((step) => (
+                    <div
+                      key={step}
+                      className={`rounded-full transition-all duration-300 ${
+                        step <= strength.score ? strength.color.split(" ")[0] : "bg-slate-200"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Terms and Conditions Checkbox */}
+            <div className="flex items-start gap-2.5 pt-1">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <label htmlFor="terms" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
+                I agree to the{" "}
+                <span className="font-bold text-slate-800 hover:underline">Terms of Service</span>{" "}
+                and{" "}
+                <span className="font-bold text-slate-800 hover:underline">Privacy Policy</span>.
+              </label>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="text-xs text-red-900 bg-red-50 border border-red-200 p-3.5 rounded-xl font-bold flex items-start gap-2 motion-enter">
+                <span className="text-sm shrink-0">⚠️</span>
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full text-white font-extrabold text-sm py-3.5 px-4 rounded-xl transition-all shadow-md active:scale-[0.99] disabled:opacity-50 cursor-pointer ${
+                role === "PROFESSIONAL"
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-emerald-500/20 hover:shadow-emerald-500/30"
+                  : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/20 hover:shadow-blue-500/30"
+              }`}
+            >
+              {loading
+                ? "Creating account..."
+                : role === "PROFESSIONAL"
+                ? "Register as Service Professional →"
+                : "Create Free Customer Account →"}
+            </button>
+          </form>
+
+          {/* Footer Navigation */}
+          <div className="pt-2 text-center border-t border-slate-100">
+            <p className="text-xs text-slate-600 font-medium">
+              Already registered on SohojService?{" "}
+              <Link href="/login" className="text-blue-600 font-bold hover:underline">
+                Sign In here
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -338,7 +515,9 @@ export default function RegisterPage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-md mx-auto px-4 py-16 text-center text-sm">Loading...</div>
+        <div className="min-h-[80vh] flex items-center justify-center text-sm text-slate-400">
+          Loading registration...
+        </div>
       }
     >
       <RegisterForm />

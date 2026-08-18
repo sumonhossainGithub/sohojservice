@@ -7,6 +7,7 @@ node_modules/
 
 .vercel
 .env*
+db/
 seed.ts
 schema.ts
 index.ts

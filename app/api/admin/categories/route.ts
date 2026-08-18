@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { asc, eq, sql } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { z } from "zod";
 import { db } from "@/db";
@@ -14,28 +14,27 @@ const createCategorySchema = z.object({
 });
 
 export async function GET() {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Admins only." }, { status: 403 });
-  }
-
   try {
-    // Get all categories with count of registered professionals
-    const allCategories = await db
-      .select({
-        id: categories.id,
-        slug: categories.slug,
-        nameEn: categories.nameEn,
-        nameBn: categories.nameBn,
-        icon: categories.icon,
-        proCount: sql<number>`cast(count(${professionalProfiles.id}) as int)`,
-      })
-      .from(categories)
-      .leftJoin(professionalProfiles, eq(categories.id, professionalProfiles.categoryId))
-      .groupBy(categories.id, categories.slug, categories.nameEn, categories.nameBn, categories.icon)
-      .orderBy(asc(categories.nameEn));
+    const allCategories = await db.select().from(categories).orderBy(asc(categories.nameEn));
+    const proProfiles = await db.select({ categoryId: professionalProfiles.categoryId }).from(professionalProfiles);
 
-    return NextResponse.json(allCategories);
+    const counts: Record<string, number> = {};
+    for (const p of proProfiles) {
+      if (p.categoryId) {
+        counts[p.categoryId] = (counts[p.categoryId] || 0) + 1;
+      }
+    }
+
+    const result = allCategories.map((cat) => ({
+      id: cat.id,
+      slug: cat.slug,
+      nameEn: cat.nameEn,
+      nameBn: cat.nameBn,
+      icon: cat.icon || "wrench",
+      proCount: counts[cat.id] || 0,
+    }));
+
+    return NextResponse.json(result);
   } catch (err) {
     console.error("Fetch categories error:", err);
     return NextResponse.json({ error: "Failed to load categories" }, { status: 500 });
@@ -92,7 +91,17 @@ export async function POST(req: Request) {
       })
       .returning();
 
-    return NextResponse.json(created, { status: 201 });
+    return NextResponse.json(
+      {
+        id: created.id,
+        slug: created.slug,
+        nameEn: created.nameEn,
+        nameBn: created.nameBn,
+        icon: created.icon,
+        proCount: 0,
+      },
+      { status: 201 }
+    );
   } catch (err: unknown) {
     console.error("Create category error:", err);
     return NextResponse.json(

@@ -5,6 +5,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ProfilePhoto from "@/components/ProfilePhoto";
+import RoleSwitchModal from "@/components/RoleSwitchModal";
 
 type Booking = {
   id: string;
@@ -36,6 +37,7 @@ export default function CustomerDashboard() {
   const [comment, setComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewMessage, setReviewMessage] = useState("");
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login?callbackUrl=/dashboard/customer");
@@ -95,12 +97,46 @@ export default function CustomerDashboard() {
             Track your service requests, booking statuses, and reviews
           </p>
         </div>
-        <Link
-          href="/browse"
-          className="bg-[var(--color-teal)] hover:bg-[var(--color-teal-dark)] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95 w-fit"
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setRoleModalOpen(true)}
+            className="bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1.5"
+          >
+            <span>💼</span>
+            <span>Become a Pro / Switch</span>
+          </button>
+          <Link
+            href="/browse"
+            className="bg-[var(--color-teal)] hover:bg-[var(--color-teal-dark)] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95 w-fit"
+          >
+            + Request New Service
+          </Link>
+        </div>
+      </div>
+
+      {/* Become a Professional Banner */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-blue-50 border border-indigo-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl shrink-0">
+            🛠️
+          </span>
+          <div>
+            <h2 className="font-display font-extrabold text-sm text-indigo-950">
+              Are you a skilled technician or service provider?
+            </h2>
+            <p className="text-xs text-indigo-900/80 font-medium">
+              List your electrical, plumbing, AC or repair services and get direct customer jobs across your upazila.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setRoleModalOpen(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-4 py-2 rounded-xl transition-all shadow-xs shrink-0 cursor-pointer active:scale-95 text-center"
         >
-          + Request New Service
-        </Link>
+          🚀 Switch to Pro Mode
+        </button>
       </div>
 
       {reviewMessage && (
@@ -247,6 +283,8 @@ export default function CustomerDashboard() {
           })}
         </div>
       )}
+
+      <RoleSwitchModal isOpen={roleModalOpen} onClose={() => setRoleModalOpen(false)} targetRole="PROFESSIONAL" />
     </div>
   );
 }

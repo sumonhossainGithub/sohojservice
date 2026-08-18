@@ -6,6 +6,44 @@ import { users, professionalProfiles, categories } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized. Please sign in." }, { status: 401 });
+    }
+
+    const [allCategories, existingProfile, userRecord] = await Promise.all([
+      db.query.categories.findMany(),
+      db.query.professionalProfiles.findFirst({
+        where: eq(professionalProfiles.userId, user.id),
+        with: {
+          category: true,
+        },
+      }),
+      db.query.users.findFirst({
+        where: eq(users.id, user.id),
+      }),
+    ]);
+
+    return NextResponse.json({
+      role: user.role,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: userRecord?.phone || null,
+        photoUrl: userRecord?.photoUrl || null,
+      },
+      professionalProfile: existingProfile || null,
+      categories: allCategories,
+    });
+  } catch (err: unknown) {
+    console.error("GET set-role error:", err);
+    return NextResponse.json({ error: "Failed to fetch profile role data." }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const user = await getCurrentUser();
@@ -23,14 +61,26 @@ export async function POST(req: Request) {
       );
     }
 
-    // Update user role in users table
-    await db.update(users).set({ role }).where(eq(users.id, user.id));
+    // Update user role and phone in users table
+    const userUpdatePayload: Record<string, any> = { role };
+    if (professionalData?.phone) {
+      userUpdatePayload.phone = professionalData.phone;
+    }
+    await db.update(users).set(userUpdatePayload).where(eq(users.id, user.id));
 
     // If role is PROFESSIONAL, create or update professional profile
     if (role === "PROFESSIONAL") {
       let categoryId = professionalData?.categoryId;
+
+      // If categorySlug passed instead of categoryId, look it up
+      if (!categoryId && professionalData?.categorySlug) {
+        const matchedCat = await db.query.categories.findFirst({
+          where: eq(categories.slug, professionalData.categorySlug),
+        });
+        if (matchedCat) categoryId = matchedCat.id;
+      }
+
       if (!categoryId) {
-        // Fallback to first available category
         const firstCat = await db.query.categories.findFirst();
         if (firstCat) categoryId = firstCat.id;
       }

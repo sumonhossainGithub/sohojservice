@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { detectLiveGpsLocation } from "@/lib/liveLocation";
 
 export type BDLocation = {
   nameEn: string;
@@ -114,37 +115,30 @@ export default function BangladeshUpazilaInput({
     setGpsError("");
   }
 
-  function handleGpsDetect() {
-    if (!navigator.geolocation) {
-      setGpsError(lang === "bn" ? "ব্রাউজারে জিপিএস সুবিধা নেই" : "GPS not supported in browser");
-      return;
-    }
-
+  async function handleGpsDetect() {
     setLocating(true);
     setGpsError("");
 
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        try {
-          const res = await fetch(`/api/locations/upazilas?lat=${coords.latitude}&lng=${coords.longitude}`);
-          const data = await res.json();
-          if (data.nearest) {
-            handleSelect(data.nearest);
-          } else {
-            setGpsError(lang === "bn" ? "কাছের অবস্থান পাওয়া যায়নি" : "Could not determine location");
-          }
-        } catch {
-          setGpsError(lang === "bn" ? "লোকেশন নির্ধারণে ত্রুটি" : "Location service error");
-        } finally {
-          setLocating(false);
-        }
-      },
-      () => {
-        setLocating(false);
-        setGpsError(lang === "bn" ? "লোকেশন অনুমতি দিন" : "Please allow location permission");
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+    const result = await detectLiveGpsLocation();
+    setLocating(false);
+
+    if (result.success && result.location) {
+      const loc: BDLocation = {
+        nameEn: result.location.nameEn,
+        nameBn: result.location.nameBn,
+        district: result.location.district,
+        division: result.location.division,
+        lat: result.location.latitude,
+        lng: result.location.longitude,
+      };
+      handleSelect(loc);
+    } else {
+      setGpsError(
+        lang === "bn"
+          ? result.error || "লোকেশন সনাক্ত করতে ব্যর্থ হয়েছে।"
+          : result.error || "Could not detect GPS location."
+      );
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {

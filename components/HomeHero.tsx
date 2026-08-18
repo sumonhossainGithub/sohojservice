@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import BangladeshUpazilaInput from "@/components/BangladeshUpazilaInput";
 import InstantBookingTrackerModal from "@/components/InstantBookingTrackerModal";
+import { getStoredLiveLocation, LiveLocationState } from "@/lib/liveLocation";
 
 export default function HomeHero() {
   const { lang, t } = useLanguage();
@@ -13,6 +14,24 @@ export default function HomeHero() {
   const [q, setQ] = useState("");
   const [area, setArea] = useState("");
   const [trackModalOpen, setTrackModalOpen] = useState(false);
+
+  // Auto pre-fill with detected live location if available
+  useEffect(() => {
+    const stored = getStoredLiveLocation();
+    if (stored && !area) {
+      setArea(stored.nameEn);
+    }
+
+    const handleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<LiveLocationState>;
+      if (customEvent.detail && !area) {
+        setArea(customEvent.detail.nameEn);
+      }
+    };
+
+    window.addEventListener("sohojservice:location_updated", handleUpdate);
+    return () => window.removeEventListener("sohojservice:location_updated", handleUpdate);
+  }, []);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();

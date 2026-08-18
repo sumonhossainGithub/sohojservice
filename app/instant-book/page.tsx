@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import BangladeshUpazilaInput from "@/components/BangladeshUpazilaInput";
 import InstantBookingTrackerModal from "@/components/InstantBookingTrackerModal";
+import { getStoredLiveLocation, LiveLocationState } from "@/lib/liveLocation";
 
 const SERVICE_OPTIONS = [
   { slug: "electrician", nameEn: "Electrician / Electrical Work", nameBn: "ইলেকট্রিশিয়ান / বৈদ্যুতিক কাজ" },
@@ -30,6 +31,14 @@ export default function InstantBookPage() {
   const [area, setArea] = useState("");
   const [fullAddress, setFullAddress] = useState("");
   const [urgency, setUrgency] = useState<"ASAP" | "TODAY" | "FLEXIBLE">("ASAP");
+
+  // Auto-fill area with detected live location if available
+  useEffect(() => {
+    const stored = getStoredLiveLocation();
+    if (stored && !area) {
+      setArea(stored.nameEn);
+    }
+  }, []);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

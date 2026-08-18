@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import ProfilePhoto from "@/components/ProfilePhoto";
 import BangladeshUpazilaInput from "@/components/BangladeshUpazilaInput";
 import MapPreview from "@/components/MapPreview";
+import { getStoredLiveLocation, detectLiveGpsLocation, LiveLocationState } from "@/lib/liveLocation";
 
 type Professional = {
   id: string;
@@ -43,10 +44,13 @@ function distanceInKm(from: Coordinates, to: Coordinates) {
 
 function BrowseContent() {
   const { lang, t } = useLanguage();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const params = useSearchParams();
+
+  const [params, setParams] = useState(searchParams);
   const [results, setResults] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [q, setQ] = useState(params.get("q") ?? "");
   const [area, setArea] = useState(params.get("area") ?? "");
   const [onlyAvailable, setOnlyAvailable] = useState(params.get("available") === "true");
@@ -55,6 +59,19 @@ function BrowseContent() {
   const [locating, setLocating] = useState(false);
 
   const category = params.get("category") ?? "";
+
+  // Auto-load cached live location on mount
+  useEffect(() => {
+    const stored = getStoredLiveLocation();
+    if (stored) {
+      setLocation({ latitude: stored.latitude, longitude: stored.longitude });
+      setLocationMessage(
+        lang === "bn"
+          ? `নিকটবর্তী এলাকা: ${stored.nameBn} (${stored.district})। দূরত্বের ক্রমানুসারে সাজানো হয়েছে।`
+          : `Near ${stored.nameEn}, ${stored.district}. Sorted by closest distance.`
+      );
+    }
+  }, [lang]);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,60 +107,27 @@ function BrowseContent() {
     router.push(`/browse?${qs.toString()}`);
   }
 
-  function useCurrentLocation() {
-    if (!navigator.geolocation) {
+  async function useCurrentLocation() {
+    setLocating(true);
+    setLocationMessage(lang === "bn" ? "অবস্থান সনাক্ত করা হচ্ছে..." : "Detecting location...");
+
+    const res = await detectLiveGpsLocation();
+    setLocating(false);
+
+    if (res.success && res.location) {
+      setLocation({ latitude: res.location.latitude, longitude: res.location.longitude });
       setLocationMessage(
         lang === "bn"
-          ? "এই ব্রাউজারে লোকেশন সুবিধা নেই।"
-          : "Location is not available in this browser."
+          ? `নিকটবর্তী এলাকা: ${res.location.nameBn} (${res.location.district})। দূরত্বের ক্রমানুসারে সাজানো হয়েছে।`
+          : `Near ${res.location.nameEn}, ${res.location.district}. Sorted by closest distance.`
       );
-      return;
+    } else {
+      setLocationMessage(
+        lang === "bn"
+          ? res.error || "লোকেশন সনাক্ত করা সম্ভব হয়নি।"
+          : res.error || "Could not detect location."
+      );
     }
-
-    setLocating(true);
-    setLocationMessage(lang === "bn" ? "অবস্থান খোঁজা হচ্ছে..." : "Detecting location...");
-
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        setLocation({ latitude: coords.latitude, longitude: coords.longitude });
-        setLocating(false);
-
-        try {
-          const res = await fetch(
-            `/api/locations/upazilas?lat=${coords.latitude}&lng=${coords.longitude}`
-          );
-          const data = await res.json();
-          if (data.nearest) {
-            setLocationMessage(
-              lang === "bn"
-                ? `নিকটবর্তী এলাকা: ${data.nearest.nameBn} (${data.nearest.district})। দূরত্বের ক্রমানুসারে সাজানো হয়েছে।`
-                : `Near ${data.nearest.nameEn}, ${data.nearest.district}. Sorted by closest distance.`
-            );
-          } else {
-            setLocationMessage(
-              lang === "bn"
-                ? "বর্তমান অবস্থান থেকে দূরত্ব দেখানো হচ্ছে।"
-                : "Showing distances from your current location."
-            );
-          }
-        } catch {
-          setLocationMessage(
-            lang === "bn"
-              ? "বর্তমান অবস্থান থেকে দূরত্ব দেখানো হচ্ছে।"
-              : "Showing distances from your current location."
-          );
-        }
-      },
-      () => {
-        setLocating(false);
-        setLocationMessage(
-          lang === "bn"
-            ? "লোকেশন অনুমতি দেওয়া হয়নি।"
-            : "Location permission was not granted."
-        );
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
   }
 
   // Sort by closest distance if location is active

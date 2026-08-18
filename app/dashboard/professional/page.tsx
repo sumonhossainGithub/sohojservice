@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import ProfilePhoto from "@/components/ProfilePhoto";
 import BangladeshUpazilaInput from "@/components/BangladeshUpazilaInput";
+import RoleSwitchModal from "@/components/RoleSwitchModal";
 
 type Category = { id: string; slug: string; nameEn: string; nameBn?: string };
 type Booking = {
@@ -61,6 +62,7 @@ function ProfessionalDashboardContent() {
   const [ratePerVisit, setRatePerVisit] = useState<number | "">("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [isAvailable, setIsAvailable] = useState(true);
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login?callbackUrl=/dashboard/professional");
@@ -179,17 +181,28 @@ function ProfessionalDashboardContent() {
             Manage your public service listing and incoming client booking requests
           </p>
         </div>
-        {profile && (
-          <span
-            className={`text-xs font-bold px-3 py-1 rounded-full border w-fit ${
-              profile.isVerified
-                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                : "bg-amber-50 text-amber-800 border-amber-200"
-            }`}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setRoleModalOpen(true)}
+            className="bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-xs font-bold px-3.5 py-1.5 rounded-xl transition-all cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1.5"
           >
-            {profile.isVerified ? "✓ Verified Badge Active" : "⏳ Pending Verification"}
-          </span>
-        )}
+            <span>🔄</span>
+            <span>Switch to Customer Mode</span>
+          </button>
+
+          {profile && (
+            <span
+              className={`text-xs font-bold px-3 py-1 rounded-full border w-fit ${
+                profile.isVerified
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                  : "bg-amber-50 text-amber-800 border-amber-200"
+              }`}
+            >
+              {profile.isVerified ? "✓ Verified Badge Active" : "⏳ Pending Verification"}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Listing Profile Settings Form */}
@@ -428,6 +441,8 @@ function ProfessionalDashboardContent() {
           </div>
         )}
       </div>
+
+      <RoleSwitchModal isOpen={roleModalOpen} onClose={() => setRoleModalOpen(false)} targetRole="CUSTOMER" />
     </div>
   );
 }

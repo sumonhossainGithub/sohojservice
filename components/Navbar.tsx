@@ -5,14 +5,43 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { useLanguage } from "@/components/LanguageProvider";
 import BrandLogo from "@/components/BrandLogo";
-import { useState } from "react";
+import RoleSwitchModal from "@/components/RoleSwitchModal";
+import { useState, useEffect } from "react";
+import { getStoredLiveLocation, detectLiveGpsLocation, LiveLocationState } from "@/lib/liveLocation";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useLanguage();
   const [open, setOpen] = useState(false);
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [liveLocation, setLiveLocation] = useState<LiveLocationState | null>(null);
+  const [locatingGps, setLocatingGps] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Load live location on mount & listen for updates
+  useEffect(() => {
+    setLiveLocation(getStoredLiveLocation());
+
+    const handleLocationUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<LiveLocationState>;
+      if (customEvent.detail) {
+        setLiveLocation(customEvent.detail);
+      }
+    };
+
+    window.addEventListener("sohojservice:location_updated", handleLocationUpdate);
+    return () => window.removeEventListener("sohojservice:location_updated", handleLocationUpdate);
+  }, []);
+
+  async function handleQuickDetectGps() {
+    setLocatingGps(true);
+    const res = await detectLiveGpsLocation();
+    setLocatingGps(false);
+    if (res.success && res.location) {
+      setLiveLocation(res.location);
+    }
+  }
 
   const dashboardHref =
     user?.role === "ADMIN"
@@ -40,19 +69,45 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl transition-all">
-      <div className="max-w-6xl mx-auto flex h-16 items-center justify-between px-4">
-        {/* Brand Logo */}
-        <Link
-          href="/"
-          className="transition-transform hover:scale-[1.03] active:scale-[0.98]"
-          aria-label="SohojService home"
-        >
-          <BrandLogo />
-        </Link>
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl transition-all">
+      <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-3 sm:px-6">
+        {/* Brand Logo & Live Location Pill */}
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="transition-transform hover:scale-[1.03] active:scale-[0.98] shrink-0"
+            aria-label="SohojService home"
+          >
+            <BrandLogo />
+          </Link>
+
+          {/* Global Live Location Pill */}
+          <button
+            type="button"
+            onClick={handleQuickDetectGps}
+            disabled={locatingGps}
+            className="hidden sm:inline-flex items-center gap-1.5 bg-slate-100/90 hover:bg-slate-200/80 text-slate-800 border border-slate-300/80 px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer shadow-2xs group"
+            title={lang === "bn" ? "লাইভ লোকেশন সনাক্ত করুন" : "Detect live GPS location"}
+          >
+            {locatingGps ? (
+              <span className="inline-block animate-spin text-[11px]">⏳</span>
+            ) : (
+              <span className="text-blue-600 group-hover:scale-110 transition-transform">📍</span>
+            )}
+            <span className="truncate max-w-[130px] font-semibold text-[11px]">
+              {liveLocation
+                ? lang === "bn"
+                  ? liveLocation.nameBn || liveLocation.nameEn
+                  : liveLocation.nameEn
+                : lang === "bn"
+                ? "লোকেশন দিন"
+                : "Live Location"}
+            </span>
+          </button>
+        </div>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden items-center gap-5 text-sm font-semibold md:flex">
+        <nav className="hidden items-center gap-4 text-sm font-semibold md:flex">
           {/* Instant Booking Highlight Pill */}
           <Link
             href="/instant-book"
@@ -103,16 +158,42 @@ export default function Navbar() {
                 {t("myAccount")}
               </Link>
 
-              {/* Role indicator (Customer / Professional / Admin) with centered Logout button underneath */}
-              <div className="flex flex-col items-center justify-center leading-none -my-1">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-bold text-slate-700 shadow-2xs">
+              {/* Role Switcher & Indicator */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-2xl p-1 shadow-2xs">
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-bold text-slate-800">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   <span>{roleLabel(user.role)}</span>
                 </span>
+
+                {user.role !== "ADMIN" && (
+                  <button
+                    type="button"
+                    onClick={() => setRoleModalOpen(true)}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-xl transition-all cursor-pointer active:scale-95"
+                    title={
+                      user.role === "CUSTOMER"
+                        ? "Switch to Professional Account"
+                        : "Switch to Customer Account"
+                    }
+                  >
+                    <span>🔄</span>
+                    <span>
+                      {user.role === "CUSTOMER"
+                        ? lang === "bn"
+                          ? "প্রো মোড"
+                          : "Switch to Pro"
+                        : lang === "bn"
+                        ? "কাস্টমার মোড"
+                        : "Switch to User"}
+                    </span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="text-[10px] font-bold text-red-500 hover:text-red-700 hover:underline transition-colors mt-1 cursor-pointer text-center"
+                  className="text-[10px] font-bold text-red-500 hover:text-red-700 hover:underline transition-colors px-1.5 py-0.5 cursor-pointer"
+                  title="Log out"
                 >
                   {t("logout")}
                 </button>
@@ -157,14 +238,24 @@ export default function Navbar() {
 
         {/* Mobile Header Elements */}
         <div className="flex items-center gap-2 md:hidden">
+          {/* Mobile Live Location Button */}
+          <button
+            type="button"
+            onClick={handleQuickDetectGps}
+            disabled={locatingGps}
+            className="inline-flex items-center gap-1 bg-slate-100 text-slate-800 border border-slate-200 px-2 py-1 rounded-lg text-xs font-bold"
+          >
+            <span>📍</span>
+            <span className="max-w-[70px] truncate text-[10px]">
+              {liveLocation ? liveLocation.nameEn.split(" ")[0] : "GPS"}
+            </span>
+          </button>
+
           <Link
             href="/instant-book"
-            className="bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black px-3 py-1.5 rounded-full shadow-md animate-emergency inline-flex items-center gap-1.5"
+            className="bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black px-2.5 py-1 rounded-full shadow-md animate-emergency inline-flex items-center gap-1"
           >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-60"></span>
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-slate-950"></span>
-            </span>
+            <span className="h-1.5 w-1.5 rounded-full bg-slate-950 animate-ping"></span>
             <span>{lang === "bn" ? "জরুরি" : "Instant"}</span>
           </Link>
 
@@ -226,6 +317,32 @@ export default function Navbar() {
               >
                 {t("myAccount")}
               </Link>
+
+              {user.role !== "ADMIN" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setRoleModalOpen(true);
+                  }}
+                  className="flex items-center justify-between p-3 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-xl font-bold text-xs cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>🔄</span>
+                    <span>
+                      {user.role === "CUSTOMER"
+                        ? lang === "bn"
+                          ? "প্রফেশনাল অ্যাকাউন্টে স্যুইচ করুন"
+                          : "Switch to Professional Account"
+                        : lang === "bn"
+                        ? "কাস্টমার অ্যাকাউন্টে স্যুইচ করুন"
+                        : "Switch to Customer Account"}
+                    </span>
+                  </span>
+                  <span>→</span>
+                </button>
+              )}
+
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200 mt-1">
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700">
                   <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -272,6 +389,9 @@ export default function Navbar() {
           )}
         </div>
       )}
+
+      {/* Role Switcher Modal */}
+      <RoleSwitchModal isOpen={roleModalOpen} onClose={() => setRoleModalOpen(false)} />
     </header>
   );
 }

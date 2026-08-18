@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import ProfilePhoto from "@/components/ProfilePhoto";
 import MapPreview from "@/components/MapPreview";
+import RoleSwitchModal from "@/components/RoleSwitchModal";
+import { detectLiveGpsLocation } from "@/lib/liveLocation";
 
 type Account = {
   name: string;
@@ -25,6 +27,7 @@ export default function AccountPage() {
   const [notification, setNotification] = useState<{ type: "success" | "warning" | "error"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [savingLocation, setSavingLocation] = useState(false);
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
 
   // Password reset state (for non-admin users)
   const [currentPassword, setCurrentPassword] = useState("");
@@ -86,37 +89,33 @@ export default function AccountPage() {
     }
   }
 
-  function saveCurrentLocation() {
-    if (!navigator.geolocation) {
-      setNotification({ type: "warning", text: "Location is not available in this browser." });
-      return;
-    }
+  async function saveCurrentLocation() {
     setSavingLocation(true);
     setNotification(null);
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        const res = await fetch("/api/account/location", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ latitude: coords.latitude, longitude: coords.longitude }),
-        });
-        const data = await res.json();
-        setSavingLocation(false);
-        if (!res.ok) {
-          setNotification({ type: "error", text: data.error ?? "Could not save location." });
-          return;
-        }
-        setAccount((current) =>
-          current ? { ...current, latitude: data.latitude, longitude: data.longitude } : current
-        );
-        setNotification({ type: "success", text: "Location saved. We use it to show nearby services." });
-      },
-      () => {
-        setSavingLocation(false);
-        setNotification({ type: "warning", text: "Location permission was not granted." });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+
+    const result = await detectLiveGpsLocation();
+    setSavingLocation(false);
+
+    if (result.success && result.location) {
+      setAccount((current) =>
+        current
+          ? {
+              ...current,
+              latitude: result.location!.latitude,
+              longitude: result.location!.longitude,
+            }
+          : current
+      );
+      setNotification({
+        type: "success",
+        text: `Live location saved (${result.location.nameEn}, ${result.location.district}). We use it to show nearby services.`,
+      });
+    } else {
+      setNotification({
+        type: "warning",
+        text: result.error || "Location permission was not granted.",
+      });
+    }
   }
 
   async function handlePasswordChange(e: React.FormEvent) {
@@ -248,6 +247,44 @@ export default function AccountPage() {
             </span>
           </div>
         </div>
+
+        {/* ACCOUNT BRANCH & ROLE SWITCH SECTION (NON-ADMIN) */}
+        {!isAdmin && (
+          <div className="border-t border-slate-200 pt-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-display font-extrabold text-base text-slate-900 flex items-center gap-1.5">
+                  <span>🔄</span>
+                  <span>Account Branch & Role</span>
+                </h3>
+                <p className="text-xs text-slate-600 font-medium mt-0.5">
+                  Switch anytime between <strong>Customer</strong> (hiring services) and <strong>Professional</strong> (offering technical services).
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold text-indigo-950">
+                  Current Branch: <strong className="uppercase bg-white px-2 py-0.5 rounded-md border border-indigo-200">{account.role}</strong>
+                </span>
+                <p className="text-[11px] text-indigo-900">
+                  {account.role === "PROFESSIONAL"
+                    ? "You can switch to Customer mode to book emergency home services."
+                    : "You can switch to Professional mode to list your trade services."}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setRoleModalOpen(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+              >
+                {account.role === "PROFESSIONAL" ? "Switch to Customer Mode" : "Switch to Professional Mode"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* PASSWORD RESET / CHANGE SECTION (EXCEPT ADMIN) */}
         <div className="border-t border-slate-200 pt-6 space-y-4">
@@ -392,6 +429,8 @@ export default function AccountPage() {
           </div>
         )}
       </div>
+
+      <RoleSwitchModal isOpen={roleModalOpen} onClose={() => setRoleModalOpen(false)} />
     </div>
   );
 }

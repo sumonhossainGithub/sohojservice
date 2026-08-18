@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import BrandLogo from "@/components/BrandLogo";
+import BangladeshUpazilaInput, { BDLocation } from "@/components/BangladeshUpazilaInput";
 
 type CategoryOption = {
   id: string;
@@ -13,22 +14,6 @@ type CategoryOption = {
   icon: string;
 };
 
-const BANGLADESH_UPAZILAS = [
-  "Sirajganj Sadar",
-  "Belkuchi",
-  "Kamarkhanda",
-  "Kazipur",
-  "Rayganj",
-  "Shahjadpur",
-  "Tarash",
-  "Ullapara",
-  "Chauhali",
-  "Dhaka North",
-  "Dhaka South",
-  "Bogra Sadar",
-  "Pabna Sadar",
-];
-
 function RoleSelectionContent() {
   const router = useRouter();
   const { user, refresh, status } = useAuth();
@@ -37,6 +22,9 @@ function RoleSelectionContent() {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [categoryId, setCategoryId] = useState("");
   const [area, setArea] = useState("Sirajganj Sadar");
+  const [city, setCity] = useState("Sirajganj");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [yearsExperience, setYearsExperience] = useState(2);
   const [ratePerVisit, setRatePerVisit] = useState(300);
   const [bio, setBio] = useState("");
@@ -62,6 +50,13 @@ function RoleSelectionContent() {
     loadCategories();
   }, []);
 
+  function handleLocationSelect(loc: BDLocation) {
+    setArea(loc.nameEn);
+    if (loc.district) setCity(loc.district);
+    if (loc.lat) setLatitude(loc.lat);
+    if (loc.lng) setLongitude(loc.lng);
+  }
+
   async function handleConfirmRole(role: "CUSTOMER" | "PROFESSIONAL") {
     setLoading(true);
     setError("");
@@ -72,9 +67,12 @@ function RoleSelectionContent() {
         professionalData?: {
           categoryId: string;
           area: string;
+          city: string;
           yearsExperience: number;
           ratePerVisit: number;
           bio?: string;
+          latitude?: number | null;
+          longitude?: number | null;
         };
       } = {
         role,
@@ -83,10 +81,13 @@ function RoleSelectionContent() {
       if (role === "PROFESSIONAL") {
         payload.professionalData = {
           categoryId: categoryId || (categories[0]?.id ?? ""),
-          area,
+          area: area.trim() || "Sirajganj Sadar",
+          city: city.trim() || "Sirajganj",
           yearsExperience: Number(yearsExperience),
           ratePerVisit: Number(ratePerVisit),
           bio: bio.trim() || undefined,
+          latitude: latitude,
+          longitude: longitude,
         };
       }
 
@@ -169,7 +170,7 @@ function RoleSelectionContent() {
                   I Need a Service
                 </h3>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Hire verified local technicians in Sirajganj for home repairs, plumbing, electrician, AC servicing, and appliance fixes.
+                  Hire verified local technicians in Sirajganj and all across Bangladesh for home repairs, plumbing, electrician, AC servicing, and appliance fixes.
                 </p>
               </div>
 
@@ -257,14 +258,19 @@ function RoleSelectionContent() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <span className="text-xl">🛠️</span>
-                <h3 className="font-display font-extrabold text-base text-slate-900">
-                  Quick Professional Setup
-                </h3>
+                <div>
+                  <h3 className="font-display font-extrabold text-base text-slate-900">
+                    Quick Professional Setup
+                  </h3>
+                  <p className="text-[11px] text-slate-500">Configure your trade and primary service location</p>
+                </div>
               </div>
-              <span className="text-xs text-emerald-700 font-bold">Step 2 of 2</span>
+              <span className="text-xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                Step 2 of 2
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               {/* Category */}
               <div>
                 <label className="font-bold text-slate-800 block mb-1">
@@ -273,7 +279,7 @@ function RoleSelectionContent() {
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full border border-slate-300 bg-slate-50 rounded-xl p-2.5 font-bold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none cursor-pointer"
+                  className="w-full border border-slate-300 bg-white rounded-xl p-3 font-bold text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none cursor-pointer"
                 >
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -286,22 +292,23 @@ function RoleSelectionContent() {
                 </select>
               </div>
 
-              {/* Area */}
+              {/* Dynamic Bangladesh Upazila & Jela Searchable Input */}
               <div>
                 <label className="font-bold text-slate-800 block mb-1">
-                  Primary Service Area <span className="text-red-500">*</span>
+                  Primary Service Area & District <span className="text-red-500">*</span>
                 </label>
-                <select
+                <BangladeshUpazilaInput
+                  required
                   value={area}
-                  onChange={(e) => setArea(e.target.value)}
-                  className="w-full border border-slate-300 bg-slate-50 rounded-xl p-2.5 font-bold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none cursor-pointer"
-                >
-                  {BANGLADESH_UPAZILAS.map((u) => (
-                    <option key={u} value={u}>
-                      {u}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setArea}
+                  onLocationSelect={handleLocationSelect}
+                  placeholder="Search any district or upazila (e.g. Sirajganj Sadar, Dhanmondi, Bogura...)"
+                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none"
+                  showGpsButton={true}
+                />
+                <p className="text-[10px] text-slate-500 mt-1 font-medium">
+                  {city ? `Selected District (জেলা): ${city}` : "Search all 64 districts and 495+ upazilas"}
+                </p>
               </div>
 
               {/* Experience */}
@@ -313,7 +320,7 @@ function RoleSelectionContent() {
                   max={40}
                   value={yearsExperience}
                   onChange={(e) => setYearsExperience(Number(e.target.value) || 0)}
-                  className="w-full border border-slate-300 bg-slate-50 rounded-xl p-2.5 text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  className="w-full border border-slate-300 bg-white rounded-xl p-3 text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none"
                 />
               </div>
 
@@ -326,7 +333,7 @@ function RoleSelectionContent() {
                   step={50}
                   value={ratePerVisit}
                   onChange={(e) => setRatePerVisit(Number(e.target.value) || 0)}
-                  className="w-full border border-slate-300 bg-slate-50 rounded-xl p-2.5 text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  className="w-full border border-slate-300 bg-white rounded-xl p-3 text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none"
                 />
               </div>
 
@@ -339,17 +346,17 @@ function RoleSelectionContent() {
                   rows={2}
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  placeholder="e.g. Expert in house wiring, motor servicing, plumbing and pump repair..."
-                  className="w-full border border-slate-300 bg-slate-50 rounded-xl p-2.5 text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none resize-none"
+                  placeholder="e.g. Expert in house wiring, motor servicing, plumbing, IPS and pump repair..."
+                  className="w-full border border-slate-300 bg-white rounded-xl p-3 text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none resize-none"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setSelectedRole(null)}
-                className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer transition-colors"
               >
                 Back
               </button>
@@ -357,9 +364,9 @@ function RoleSelectionContent() {
                 type="button"
                 disabled={loading}
                 onClick={() => handleConfirmRole("PROFESSIONAL")}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-6 py-2.5 rounded-xl shadow-md transition-all disabled:opacity-50 cursor-pointer"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-6 py-2.5 rounded-xl shadow-md transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
               >
-                {loading ? "Creating Profile..." : "✓ Complete & Go to Dashboard"}
+                <span>{loading ? "Creating Profile..." : "✓ Complete & Go to Dashboard"}</span>
               </button>
             </div>
           </div>

@@ -45,10 +45,12 @@ export async function POST(req: Request) {
             userId: user.id,
             categoryId: categoryId,
             area: professionalData?.area || "Sirajganj Sadar",
-            city: "Sirajganj",
+            city: professionalData?.city || "Sirajganj",
             yearsExperience: professionalData?.yearsExperience || 2,
             ratePerVisit: professionalData?.ratePerVisit || 300,
             bio: professionalData?.bio || "",
+            latitude: professionalData?.latitude || null,
+            longitude: professionalData?.longitude || null,
             isVerified: false,
             isAvailable: true,
           });
@@ -58,9 +60,12 @@ export async function POST(req: Request) {
             .set({
               categoryId: categoryId,
               area: professionalData?.area || existingProfile.area,
+              city: professionalData?.city || existingProfile.city,
               yearsExperience: professionalData?.yearsExperience ?? existingProfile.yearsExperience,
               ratePerVisit: professionalData?.ratePerVisit ?? existingProfile.ratePerVisit,
               bio: professionalData?.bio ?? existingProfile.bio,
+              latitude: professionalData?.latitude ?? existingProfile.latitude,
+              longitude: professionalData?.longitude ?? existingProfile.longitude,
             })
             .where(eq(professionalProfiles.id, existingProfile.id));
         }

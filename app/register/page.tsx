@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import BrandLogo from "@/components/BrandLogo";
+import BangladeshUpazilaInput, { BDLocation } from "@/components/BangladeshUpazilaInput";
 
 type CategoryOption = {
   id: string;
@@ -14,22 +15,6 @@ type CategoryOption = {
   nameBn: string;
   icon: string;
 };
-
-const BANGLADESH_UPAZILAS = [
-  "Sirajganj Sadar",
-  "Belkuchi",
-  "Kamarkhanda",
-  "Kazipur",
-  "Rayganj",
-  "Shahjadpur",
-  "Tarash",
-  "Ullapara",
-  "Chauhali",
-  "Dhaka North",
-  "Dhaka South",
-  "Bogra Sadar",
-  "Pabna Sadar",
-];
 
 function RegisterForm() {
   const router = useRouter();
@@ -53,6 +38,9 @@ function RegisterForm() {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [categoryId, setCategoryId] = useState("");
   const [area, setArea] = useState("Sirajganj Sadar");
+  const [city, setCity] = useState("Sirajganj");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [yearsExperience, setYearsExperience] = useState<number>(2);
   const [ratePerVisit, setRatePerVisit] = useState<number>(300);
   const [bio, setBio] = useState("");
@@ -125,6 +113,13 @@ function RegisterForm() {
 
   const strength = getPasswordStrength();
 
+  function handleLocationSelect(loc: BDLocation) {
+    setArea(loc.nameEn);
+    if (loc.district) setCity(loc.district);
+    if (loc.lat) setLatitude(loc.lat);
+    if (loc.lng) setLongitude(loc.lng);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -166,7 +161,8 @@ function RegisterForm() {
         ...(role === "PROFESSIONAL"
           ? {
               categoryId: categoryId || (categories[0]?.id ?? undefined),
-              area,
+              area: area.trim(),
+              city: city.trim() || "Sirajganj",
               yearsExperience: Number(yearsExperience),
               ratePerVisit: Number(ratePerVisit),
               bio: bio.trim() || undefined,
@@ -393,19 +389,20 @@ function RegisterForm() {
 
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                      Service Area / Upazila <span className="text-red-500">*</span>
+                      Service Area & District <span className="text-red-500">*</span>
                     </label>
-                    <select
+                    <BangladeshUpazilaInput
+                      required
                       value={area}
-                      onChange={(e) => setArea(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-medium text-slate-900 focus:border-emerald-600 focus:outline-none cursor-pointer"
-                    >
-                      {BANGLADESH_UPAZILAS.map((upazila) => (
-                        <option key={upazila} value={upazila}>
-                          {upazila}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setArea}
+                      onLocationSelect={handleLocationSelect}
+                      placeholder="Search district or upazila (e.g. Sirajganj Sadar, Dhanmondi, Bogura...)"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none"
+                      showGpsButton={true}
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1 font-medium">
+                      {city ? `District: ${city}` : "All 64 districts & 495+ upazilas supported"}
+                    </p>
                   </div>
                 </div>
 

@@ -18,6 +18,7 @@ const schema = z.object({
   // Optional professional setup fields
   categoryId: z.string().optional(),
   area: z.string().optional(),
+  city: z.string().optional(),
   yearsExperience: z.number().optional(),
   ratePerVisit: z.number().optional(),
   bio: z.string().optional(),
@@ -43,6 +44,7 @@ export async function POST(req: Request) {
       role,
       categoryId,
       area,
+      city,
       yearsExperience,
       ratePerVisit,
       bio,
@@ -62,27 +64,28 @@ export async function POST(req: Request) {
     });
 
     if (existing) {
-      if (existing.email.toLowerCase() === cleanEmail) {
+      if (existing.email === cleanEmail) {
         return NextResponse.json(
-          { error: "An account with this email address already exists. Please log in instead." },
+          { error: "An account with this email address already exists. Please sign in." },
           { status: 409 }
         );
       }
-      return NextResponse.json(
-        { error: "An account with this mobile number already exists. Please log in instead." },
-        { status: 409 }
-      );
+      if (existing.phone === cleanPhone) {
+        return NextResponse.json(
+          { error: "An account with this mobile number already exists. Please sign in." },
+          { status: 409 }
+        );
+      }
     }
 
     // 3. Hash password
     const passwordHash = await bcrypt.hash(password, 10);
-    const userId = createId();
 
     // 4. Create user in database
     const [user] = await db
       .insert(users)
       .values({
-        id: userId,
+        id: createId(),
         name: name.trim(),
         email: cleanEmail,
         phone: cleanPhone,
@@ -100,7 +103,7 @@ export async function POST(req: Request) {
           userId: user.id,
           categoryId,
           area: area?.trim() || "Sirajganj Sadar",
-          city: "Sirajganj",
+          city: city?.trim() || "Sirajganj",
           yearsExperience: yearsExperience ?? 1,
           ratePerVisit: ratePerVisit ?? 300,
           bio: bio?.trim() || `Professional service provider in ${area || "Sirajganj"}.`,

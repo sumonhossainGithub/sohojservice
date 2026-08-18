@@ -156,6 +156,7 @@ export default function AdminDashboard() {
   const [newCatNameBn, setNewCatNameBn] = useState("");
   const [newCatSlug, setNewCatSlug] = useState("");
   const [newCatIcon, setNewCatIcon] = useState("wrench");
+  const [createCatError, setCreateCatError] = useState("");
   const [creatingCategory, setCreatingCategory] = useState(false);
 
   const [editingCategory, setEditingCategory] = useState<AdminCategory | null>(null);
@@ -163,6 +164,7 @@ export default function AdminDashboard() {
   const [editCatNameBn, setEditCatNameBn] = useState("");
   const [editCatSlug, setEditCatSlug] = useState("");
   const [editCatIcon, setEditCatIcon] = useState("wrench");
+  const [editCatError, setEditCatError] = useState("");
   const [savingCategory, setSavingCategory] = useState(false);
 
   // Selected Professional Detail Modal State
@@ -453,25 +455,44 @@ export default function AdminDashboard() {
   // Category Actions
   async function handleCreateCategory(e: React.FormEvent) {
     e.preventDefault();
+    setCreateCatError("");
+
+    if (!newCatNameEn.trim()) {
+      setCreateCatError("Please enter the English name.");
+      return;
+    }
+    if (!newCatNameBn.trim()) {
+      setCreateCatError("Please enter the Bangla name.");
+      return;
+    }
+
     setCreatingCategory(true);
-    setActionMessage("");
     try {
+      const generatedSlug = (newCatSlug || newCatNameEn)
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
       const res = await fetch("/api/admin/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nameEn: newCatNameEn,
-          nameBn: newCatNameBn,
-          slug: newCatSlug || newCatNameEn.toLowerCase().replace(/[^a-z0-9]/g, "-"),
-          icon: newCatIcon,
+          nameEn: newCatNameEn.trim(),
+          nameBn: newCatNameBn.trim(),
+          slug: generatedSlug,
+          icon: newCatIcon || "wrench",
         }),
       });
+
       const data = await res.json();
       setCreatingCategory(false);
+
       if (!res.ok) {
-        setActionMessage(`Error: ${data.error || "Failed to create category"}`);
+        setCreateCatError(data.error || "Failed to create category");
         return;
       }
+
       setCategoriesList((prev) =>
         [...prev, { ...data, proCount: 0 }].sort((a, b) => a.nameEn.localeCompare(b.nameEn))
       );
@@ -480,10 +501,11 @@ export default function AdminDashboard() {
       setNewCatNameBn("");
       setNewCatSlug("");
       setNewCatIcon("wrench");
+      setCreateCatError("");
       setActionMessage("🎉 Service Category created successfully!");
     } catch {
       setCreatingCategory(false);
-      setActionMessage("Error creating category.");
+      setCreateCatError("Network error. Please try again.");
     }
   }
 
@@ -493,40 +515,61 @@ export default function AdminDashboard() {
     setEditCatNameBn(cat.nameBn);
     setEditCatSlug(cat.slug);
     setEditCatIcon(cat.icon || "wrench");
+    setEditCatError("");
   }
 
   async function handleSaveCategoryEdits(e: React.FormEvent) {
     e.preventDefault();
     if (!editingCategory) return;
+    setEditCatError("");
+
+    if (!editCatNameEn.trim()) {
+      setEditCatError("Please enter the English name.");
+      return;
+    }
+    if (!editCatNameBn.trim()) {
+      setEditCatError("Please enter the Bangla name.");
+      return;
+    }
+
     setSavingCategory(true);
-    setActionMessage("");
     try {
+      const cleanSlug = (editCatSlug || editCatNameEn)
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
       const res = await fetch(`/api/admin/categories/${editingCategory.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nameEn: editCatNameEn,
-          nameBn: editCatNameBn,
-          slug: editCatSlug,
-          icon: editCatIcon,
+          nameEn: editCatNameEn.trim(),
+          nameBn: editCatNameBn.trim(),
+          slug: cleanSlug,
+          icon: editCatIcon || "wrench",
         }),
       });
+
       const data = await res.json();
       setSavingCategory(false);
+
       if (!res.ok) {
-        setActionMessage(`Error: ${data.error || "Failed to update category"}`);
+        setEditCatError(data.error || "Failed to update category");
         return;
       }
+
       setCategoriesList((prev) =>
         prev
           .map((c) => (c.id === editingCategory.id ? { ...c, ...data } : c))
           .sort((a, b) => a.nameEn.localeCompare(b.nameEn))
       );
       setEditingCategory(null);
+      setEditCatError("");
       setActionMessage("Service Category updated successfully.");
     } catch {
       setSavingCategory(false);
-      setActionMessage("Error updating category.");
+      setEditCatError("Network error. Please try again.");
     }
   }
 
@@ -1735,7 +1778,7 @@ export default function AdminDashboard() {
       {/* MODAL 3: ADD NEW SERVICE CATEGORY */}
       {showAddCategoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
-          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 md:p-8 space-y-6">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 md:p-8 space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <span className="text-2xl">📂</span>
@@ -1747,12 +1790,23 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <button
-                onClick={() => setShowAddCategoryModal(false)}
+                type="button"
+                onClick={() => {
+                  setShowAddCategoryModal(false);
+                  setCreateCatError("");
+                }}
                 className="text-slate-400 hover:text-slate-700 text-lg font-bold p-1 rounded-lg cursor-pointer"
               >
                 ✕
               </button>
             </div>
+
+            {createCatError && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{createCatError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleCreateCategory} className="space-y-4 text-xs">
               <div>
@@ -1764,10 +1818,15 @@ export default function AdminDashboard() {
                   required
                   value={newCatNameEn}
                   onChange={(e) => {
-                    setNewCatNameEn(e.target.value);
-                    if (!newCatSlug) {
-                      setNewCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "-"));
-                    }
+                    const val = e.target.value;
+                    setNewCatNameEn(val);
+                    setNewCatSlug(
+                      val
+                        .toLowerCase()
+                        .trim()
+                        .replace(/[^a-z0-9]+/g, "-")
+                        .replace(/^-+|-+$/g, "")
+                    );
                   }}
                   placeholder="e.g. Water Purifier & Filter"
                   className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
@@ -1791,11 +1850,10 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-800 block mb-1">
-                    URL Slug <span className="text-red-500">*</span>
+                    URL Slug <span className="text-slate-400 text-[10px]">(Auto)</span>
                   </label>
                   <input
                     type="text"
-                    required
                     value={newCatSlug}
                     onChange={(e) => setNewCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-"))}
                     placeholder="water-filter"
@@ -1808,7 +1866,7 @@ export default function AdminDashboard() {
                   <select
                     value={newCatIcon}
                     onChange={(e) => setNewCatIcon(e.target.value)}
-                    className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none cursor-pointer"
+                    className="w-full border border-slate-300 bg-white rounded-xl p-3 text-xs text-slate-900 focus:border-purple-600 focus:outline-none cursor-pointer font-medium"
                   >
                     <option value="wrench">🔧 Wrench / Repair</option>
                     <option value="zap">⚡ Zap / Electric</option>
@@ -1840,10 +1898,31 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              {/* Real-time Category Preview Card */}
+              {newCatNameEn && (
+                <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-2xl flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-purple-200 text-purple-800 flex items-center justify-center font-bold text-sm">
+                      📂
+                    </div>
+                    <div>
+                      <p className="font-bold text-xs text-purple-950">{newCatNameEn}</p>
+                      <p className="text-[10px] text-purple-700 font-semibold">{newCatNameBn || "বাংলা নাম..."}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded text-purple-900 border border-purple-200">
+                    /{newCatSlug || "slug"}
+                  </span>
+                </div>
+              )}
+
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setShowAddCategoryModal(false)}
+                  onClick={() => {
+                    setShowAddCategoryModal(false);
+                    setCreateCatError("");
+                  }}
                   className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
                 >
                   Cancel
@@ -1851,7 +1930,7 @@ export default function AdminDashboard() {
                 <button
                   type="submit"
                   disabled={creatingCategory}
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {creatingCategory ? "Creating..." : "➕ Create Category"}
                 </button>
@@ -1864,7 +1943,7 @@ export default function AdminDashboard() {
       {/* MODAL 4: EDIT SERVICE CATEGORY */}
       {editingCategory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs motion-enter">
-          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 md:p-8 space-y-6">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 md:p-8 space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <span className="text-2xl">✏️</span>
@@ -1876,12 +1955,23 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <button
-                onClick={() => setEditingCategory(null)}
+                type="button"
+                onClick={() => {
+                  setEditingCategory(null);
+                  setEditCatError("");
+                }}
                 className="text-slate-400 hover:text-slate-700 text-lg font-bold p-1 rounded-lg cursor-pointer"
               >
                 ✕
               </button>
             </div>
+
+            {editCatError && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{editCatError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleSaveCategoryEdits} className="space-y-4 text-xs">
               <div>
@@ -1923,7 +2013,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-800 block mb-1">Icon</label>
+                  <label className="font-bold text-slate-800 block mb-1">Icon Theme</label>
                   <input
                     type="text"
                     value={editCatIcon}
@@ -1950,7 +2040,10 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setEditingCategory(null)}
+                    onClick={() => {
+                      setEditingCategory(null);
+                      setEditCatError("");
+                    }}
                     className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
                   >
                     Cancel
@@ -1958,7 +2051,7 @@ export default function AdminDashboard() {
                   <button
                     type="submit"
                     disabled={savingCategory}
-                    className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                    className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 text-xs font-bold rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
                   >
                     {savingCategory ? "Saving..." : "💾 Save Changes"}
                   </button>

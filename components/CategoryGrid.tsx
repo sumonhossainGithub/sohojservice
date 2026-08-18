@@ -12,35 +12,117 @@ type Category = {
 };
 
 const iconForTheme: Record<string, string> = {
+  // Repair, Tools & Construction
   wrench: "🔧",
+  tool: "🛠️",
+  hammer: "🔨",
+  saw: "🪚",
+  axe: "🪓",
+  screwdriver: "🪛",
+  "nut-bolt": "🔩",
+  gear: "⚙️",
+  ladder: "🪜",
+  brick: "🧱",
+
+  // Electricity, Power & Solar
   zap: "⚡",
+  "battery-charging": "🔋",
+  plug: "🔌",
+  bulb: "💡",
+  flashlight: "🔦",
+  sun: "☀️",
+  generator: "🪫",
+
+  // Plumbing, Water & Gas
   droplet: "💧",
+  filter: "🚰",
+  bath: "🛁",
+  shower: "🚿",
+  toilet: "🚽",
+  flame: "🔥",
+  extinguisher: "🧯",
+
+  // Cooling, Air & Electronics
   wind: "💨",
   snowflake: "❄️",
+  fan: "🪭",
+  tv: "📺",
+  radio: "📻",
+  "washing-machine": "🧺",
+
+  // Cleaning, Hygiene & Pest Control
   sparkles: "✨",
+  broom: "🧹",
+  sponge: "🧽",
+  soap: "🧼",
+  bucket: "🪣",
+  trash: "🗑️",
+  shield: "🛡️",
+  bug: "🪲",
+
+  // Painting, Furniture & Interior
   paintbrush: "🖌️",
-  hammer: "🔨",
+  palette: "🎨",
+  couch: "🛋️",
+  chair: "🪑",
+  bed: "🛏️",
+  door: "🚪",
+  window: "🪟",
+  mirror: "🪞",
+
+  // Tech, Computers & Security
   smartphone: "📱",
   monitor: "💻",
+  desktop: "🖥️",
+  printer: "🖨️",
+  keyboard: "⌨️",
   wifi: "📶",
+  satellite: "📡",
   camera: "📷",
-  "book-open": "📖",
-  "battery-charging": "🔋",
-  sun: "☀️",
-  flame: "🔥",
-  filter: "🚰",
-  activity: "⚙️",
-  shield: "🛡️",
-  tool: "🛠️",
-  grid: "🧱",
-  truck: "🚚",
-  tv: "📺",
-  scissors: "✂️",
   aperture: "📸",
-  trash: "🗑️",
-  car: "🚗",
-  home: "🏠",
   lock: "🔒",
+  key: "🔑",
+  bell: "🔔",
+
+  // Education, Beauty & Lifestyle
+  "book-open": "📖",
+  "grad-cap": "🎓",
+  pencil: "✏️",
+  scissors: "✂️",
+  razor: "🪒",
+  spa: "💆",
+  dress: "👗",
+  sewing: "🧵",
+  needle: "🪡",
+  baby: "👶",
+  stethoscope: "🩺",
+  pill: "💊",
+
+  // Transport, Vehicles & Moving
+  truck: "🚚",
+  car: "🚗",
+  motorcycle: "🏍️",
+  bicycle: "🚲",
+  cng: "🛺",
+  bus: "🚌",
+  oil: "🛢️",
+  package: "📦",
+
+  // Gardening, Plants & Outdoors
+  plant: "🪴",
+  tree: "🌳",
+  flower: "🌸",
+  seedling: "🌱",
+
+  // Food, Catering & Home
+  chef: "👨‍🍳",
+  pot: "🍲",
+  knife: "🔪",
+  cake: "🎂",
+  microphone: "🎤",
+  balloon: "🎈",
+  home: "🏠",
+  building: "🏢",
   briefcase: "💼",
 };
 

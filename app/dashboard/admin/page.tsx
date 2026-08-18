@@ -134,36 +134,118 @@ function isDateThisYear(dateStr: string) {
 }
 
 const ICON_THEMES = [
-  { id: "wrench", emoji: "🔧", label: "Mechanic / Repair" },
-  { id: "zap", emoji: "⚡", label: "Electrician / Wiring" },
-  { id: "droplet", emoji: "💧", label: "Plumber / Water" },
-  { id: "wind", emoji: "💨", label: "AC Cooling / Air" },
-  { id: "snowflake", emoji: "❄️", label: "Fridge / Freeze" },
-  { id: "sparkles", emoji: "✨", label: "Deep Cleaning" },
-  { id: "paintbrush", emoji: "🖌️", label: "House Painter" },
-  { id: "hammer", emoji: "🔨", label: "Carpenter / Wood" },
-  { id: "smartphone", emoji: "📱", label: "Mobile Repair" },
-  { id: "monitor", emoji: "💻", label: "Computer / IT" },
-  { id: "wifi", emoji: "📶", label: "WiFi / Internet" },
-  { id: "camera", emoji: "📷", label: "CCTV / Security" },
-  { id: "book-open", emoji: "📖", label: "Home Tutor" },
-  { id: "battery-charging", emoji: "🔋", label: "IPS / Battery" },
+  // Repair, Tools & Construction
+  { id: "wrench", emoji: "🔧", label: "Wrench / Repair" },
+  { id: "tool", emoji: "🛠️", label: "Tools / Workshop" },
+  { id: "hammer", emoji: "🔨", label: "Hammer / Carpenter" },
+  { id: "saw", emoji: "🪚", label: "Saw / Carpentry" },
+  { id: "axe", emoji: "🪓", label: "Axe / Woodcutter" },
+  { id: "screwdriver", emoji: "🪛", label: "Screwdriver / Hardware" },
+  { id: "nut-bolt", emoji: "🔩", label: "Nut & Bolt / Fasteners" },
+  { id: "gear", emoji: "⚙️", label: "Gear / Machinery" },
+  { id: "ladder", emoji: "🪜", label: "Ladder / Scaffolding" },
+  { id: "brick", emoji: "🧱", label: "Bricks / Masonry" },
+
+  // Electricity, Power & Solar
+  { id: "zap", emoji: "⚡", label: "Electric / Power" },
+  { id: "battery-charging", emoji: "🔋", label: "Battery / IPS" },
+  { id: "plug", emoji: "🔌", label: "Electric Plug" },
+  { id: "bulb", emoji: "💡", label: "Lightbulb / Lighting" },
+  { id: "flashlight", emoji: "🔦", label: "Flashlight / Emergency" },
   { id: "sun", emoji: "☀️", label: "Solar Energy" },
-  { id: "flame", emoji: "🔥", label: "Gas Stove" },
-  { id: "filter", emoji: "🚰", label: "Water Purifier" },
-  { id: "activity", emoji: "⚙️", label: "Motor & Pump" },
-  { id: "shield", emoji: "🛡️", label: "Pest Control" },
-  { id: "tool", emoji: "🛠️", label: "Welding / Metal" },
-  { id: "grid", emoji: "🧱", label: "Tiles & Masonry" },
-  { id: "truck", emoji: "🚚", label: "Shifting & Movers" },
-  { id: "tv", emoji: "📺", label: "TV & Electronics" },
-  { id: "scissors", emoji: "✂️", label: "Beauty & Salon" },
-  { id: "aperture", emoji: "📸", label: "Photography" },
-  { id: "trash", emoji: "🗑️", label: "Septic Cleaning" },
-  { id: "car", emoji: "🚗", label: "Car & Bike" },
-  { id: "home", emoji: "🏠", label: "Renovation" },
+  { id: "generator", emoji: "🪫", label: "Inverter / Generator" },
+
+  // Plumbing, Water & Gas
+  { id: "droplet", emoji: "💧", label: "Plumbing / Water" },
+  { id: "filter", emoji: "🚰", label: "Water Filter / Purifier" },
+  { id: "bath", emoji: "🛁", label: "Bathroom / Tub" },
+  { id: "shower", emoji: "🚿", label: "Shower / Sanitary" },
+  { id: "toilet", emoji: "🚽", label: "Toilet / Drainage" },
+  { id: "flame", emoji: "🔥", label: "Gas Stove / Burner" },
+  { id: "extinguisher", emoji: "🧯", label: "Fire Safety" },
+
+  // Cooling, Air & Electronics
+  { id: "wind", emoji: "💨", label: "AC Cooling / Air" },
+  { id: "snowflake", emoji: "❄️", label: "Fridge / Deep Freeze" },
+  { id: "fan", emoji: "🪭", label: "Fan / Ventilation" },
+  { id: "tv", emoji: "📺", label: "TV / Television" },
+  { id: "radio", emoji: "📻", label: "Radio / Audio" },
+  { id: "washing-machine", emoji: "🧺", label: "Laundry / Washing" },
+
+  // Cleaning, Hygiene & Pest Control
+  { id: "sparkles", emoji: "✨", label: "Deep Cleaning" },
+  { id: "broom", emoji: "🧹", label: "Broom / Sweeping" },
+  { id: "sponge", emoji: "🧽", label: "Sponge / Scrub" },
+  { id: "soap", emoji: "🧼", label: "Soap / Sanitization" },
+  { id: "bucket", emoji: "🪣", label: "Bucket / Mopping" },
+  { id: "trash", emoji: "🗑️", label: "Waste / Septic Tank" },
+  { id: "shield", emoji: "🛡️", label: "Pest Control / Safety" },
+  { id: "bug", emoji: "🪲", label: "Termite & Bug Control" },
+
+  // Painting, Furniture & Interior
+  { id: "paintbrush", emoji: "🖌️", label: "Paintbrush / Painter" },
+  { id: "palette", emoji: "🎨", label: "Art & Colors" },
+  { id: "couch", emoji: "🛋️", label: "Furniture / Sofa" },
+  { id: "chair", emoji: "🪑", label: "Chair / Woodwork" },
+  { id: "bed", emoji: "🛏️", label: "Bed / Interior" },
+  { id: "door", emoji: "🚪", label: "Door / Fittings" },
+  { id: "window", emoji: "🪟", label: "Window & Glass" },
+  { id: "mirror", emoji: "🪞", label: "Mirror / Glass Work" },
+
+  // Tech, Computers & Security
+  { id: "smartphone", emoji: "📱", label: "Mobile Repair" },
+  { id: "monitor", emoji: "💻", label: "Computer / Laptop" },
+  { id: "desktop", emoji: "🖥️", label: "Desktop PC / Server" },
+  { id: "printer", emoji: "🖨️", label: "Printer / Copier" },
+  { id: "keyboard", emoji: "⌨️", label: "Keyboard / Tech" },
+  { id: "wifi", emoji: "📶", label: "WiFi / Network" },
+  { id: "satellite", emoji: "📡", label: "Dish / Antenna" },
+  { id: "camera", emoji: "📷", label: "CCTV / Camera" },
+  { id: "aperture", emoji: "📸", label: "Photography / Video" },
   { id: "lock", emoji: "🔒", label: "Locksmith / Key" },
-  { id: "briefcase", emoji: "💼", label: "General Contractor" },
+  { id: "key", emoji: "🔑", label: "Key Maker" },
+  { id: "bell", emoji: "🔔", label: "Doorbell / Intercom" },
+
+  // Education, Beauty & Lifestyle
+  { id: "book-open", emoji: "📖", label: "Tutor / Education" },
+  { id: "grad-cap", emoji: "🎓", label: "Coaching / Academy" },
+  { id: "pencil", emoji: "✏️", label: "Drawing & Writing" },
+  { id: "scissors", emoji: "✂️", label: "Salon / Hair Cut" },
+  { id: "razor", emoji: "🪒", label: "Barber / Grooming" },
+  { id: "spa", emoji: "💆", label: "Spa & Massage" },
+  { id: "dress", emoji: "👗", label: "Tailor / Dressmaker" },
+  { id: "sewing", emoji: "🧵", label: "Sewing & Stitching" },
+  { id: "needle", emoji: "🪡", label: "Needle & Thread" },
+  { id: "baby", emoji: "👶", label: "Babysitter / Nanny" },
+  { id: "stethoscope", emoji: "🩺", label: "Home Nurse / Health" },
+  { id: "pill", emoji: "💊", label: "Medicine / Pharmacy" },
+
+  // Transport, Vehicles & Moving
+  { id: "truck", emoji: "🚚", label: "Movers & Shifting" },
+  { id: "car", emoji: "🚗", label: "Car Repair & Wash" },
+  { id: "motorcycle", emoji: "🏍️", label: "Motorbike / Bike Service" },
+  { id: "bicycle", emoji: "🚲", label: "Cycle Repair" },
+  { id: "cng", emoji: "🛺", label: "Auto Rickshaw" },
+  { id: "bus", emoji: "🚌", label: "Bus / Transport" },
+  { id: "oil", emoji: "🛢️", label: "Engine Oil / Fuel" },
+  { id: "package", emoji: "📦", label: "Parcel & Courier" },
+
+  // Gardening, Plants & Outdoors
+  { id: "plant", emoji: "🪴", label: "Potted Plant / Indoor" },
+  { id: "tree", emoji: "🌳", label: "Gardener / Tree Cutting" },
+  { id: "flower", emoji: "🌸", label: "Flower & Landscape" },
+  { id: "seedling", emoji: "🌱", label: "Nursery / Plants" },
+
+  // Food, Catering & Home
+  { id: "chef", emoji: "👨‍🍳", label: "Cook / Chef" },
+  { id: "pot", emoji: "🍲", label: "Catering / Food" },
+  { id: "knife", emoji: "🔪", label: "Kitchen Appliances" },
+  { id: "cake", emoji: "🎂", label: "Baker / Pastry" },
+  { id: "microphone", emoji: "🎤", label: "Sound System / DJ" },
+  { id: "balloon", emoji: "🎈", label: "Party & Event Decor" },
+  { id: "home", emoji: "🏠", label: "House Renovation" },
+  { id: "building", emoji: "🏢", label: "Commercial Builder" },
+  { id: "briefcase", emoji: "💼", label: "Contractor / Services" },
 ];
 
 function getCategoryEmoji(icon?: string, slug?: string) {
@@ -2013,36 +2095,34 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              {/* VISUAL ICON THEME CHOOSER */}
+              {/* VISUAL ICON THEME CHOOSER (Pure Icons Grid) */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="font-bold text-slate-800 text-xs">
-                    Choose Icon Theme <span className="text-purple-600 font-normal text-[11px]">(Click any icon)</span>
+                    Choose Icon Theme <span className="text-purple-600 font-normal text-[11px]">({ICON_THEMES.length} icons available)</span>
                   </label>
-                  <span className="text-[11px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-purple-200">
-                    <span>{getCategoryEmoji(newCatIcon)}</span>
-                    <span>{ICON_THEMES.find((t) => t.id === (newCatIcon || "wrench"))?.label || newCatIcon}</span>
+                  <span className="text-[11px] font-bold text-purple-700 bg-purple-100 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 border border-purple-200">
+                    <span className="text-base">{getCategoryEmoji(newCatIcon)}</span>
+                    <span>Selected: {newCatIcon || "wrench"}</span>
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-44 overflow-y-auto p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5 max-h-48 overflow-y-auto p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
                   {ICON_THEMES.map((theme) => {
                     const isSelected = (newCatIcon || "wrench") === theme.id;
                     return (
                       <button
                         key={theme.id}
                         type="button"
+                        title={theme.label}
                         onClick={() => setNewCatIcon(theme.id)}
-                        className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                        className={`h-10 w-full flex items-center justify-center rounded-xl text-xl transition-all cursor-pointer ${
                           isSelected
-                            ? "bg-purple-100/90 border-purple-500 ring-2 ring-purple-500 shadow-xs scale-105 font-bold"
-                            : "bg-white border-slate-200 hover:border-purple-300 hover:bg-purple-50/50"
+                            ? "bg-purple-600 text-white shadow-md scale-110 ring-2 ring-purple-600 ring-offset-1 z-10"
+                            : "bg-white text-slate-800 border border-slate-200 hover:bg-purple-100 hover:border-purple-300 hover:scale-105"
                         }`}
                       >
-                        <span className="text-2xl mb-1">{theme.emoji}</span>
-                        <span className="text-[10px] font-semibold text-slate-700 leading-tight line-clamp-1">
-                          {theme.label.split(" ")[0]}
-                        </span>
+                        <span>{theme.emoji}</span>
                       </button>
                     );
                   })}
@@ -2162,36 +2242,34 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              {/* VISUAL ICON THEME CHOOSER */}
+              {/* VISUAL ICON THEME CHOOSER (Pure Icons Grid) */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="font-bold text-slate-800 text-xs">
-                    Choose Icon Theme <span className="text-purple-600 font-normal text-[11px]">(Click any icon)</span>
+                    Choose Icon Theme <span className="text-purple-600 font-normal text-[11px]">({ICON_THEMES.length} icons available)</span>
                   </label>
-                  <span className="text-[11px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-purple-200">
-                    <span>{getCategoryEmoji(editCatIcon)}</span>
-                    <span>{ICON_THEMES.find((t) => t.id === (editCatIcon || "wrench"))?.label || editCatIcon}</span>
+                  <span className="text-[11px] font-bold text-purple-700 bg-purple-100 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 border border-purple-200">
+                    <span className="text-base">{getCategoryEmoji(editCatIcon)}</span>
+                    <span>Selected: {editCatIcon || "wrench"}</span>
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-44 overflow-y-auto p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5 max-h-48 overflow-y-auto p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
                   {ICON_THEMES.map((theme) => {
                     const isSelected = (editCatIcon || "wrench") === theme.id;
                     return (
                       <button
                         key={theme.id}
                         type="button"
+                        title={theme.label}
                         onClick={() => setEditCatIcon(theme.id)}
-                        className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                        className={`h-10 w-full flex items-center justify-center rounded-xl text-xl transition-all cursor-pointer ${
                           isSelected
-                            ? "bg-purple-100/90 border-purple-500 ring-2 ring-purple-500 shadow-xs scale-105 font-bold"
-                            : "bg-white border-slate-200 hover:border-purple-300 hover:bg-purple-50/50"
+                            ? "bg-purple-600 text-white shadow-md scale-110 ring-2 ring-purple-600 ring-offset-1 z-10"
+                            : "bg-white text-slate-800 border border-slate-200 hover:bg-purple-100 hover:border-purple-300 hover:scale-105"
                         }`}
                       >
-                        <span className="text-2xl mb-1">{theme.emoji}</span>
-                        <span className="text-[10px] font-semibold text-slate-700 leading-tight line-clamp-1">
-                          {theme.label.split(" ")[0]}
-                        </span>
+                        <span>{theme.emoji}</span>
                       </button>
                     );
                   })}

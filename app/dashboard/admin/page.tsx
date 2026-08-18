@@ -338,6 +338,21 @@ export default function AdminDashboard() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
 
+  // Lock body scroll on mobile and desktop when any modal is open
+  useEffect(() => {
+    const isAnyModalOpen = Boolean(
+      showAddCategoryModal || editingCategory || selectedProfessional || selectedUser
+    );
+    if (isAnyModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showAddCategoryModal, editingCategory, selectedProfessional, selectedUser]);
+
   async function loadCategories() {
     try {
       const res = await fetch("/api/admin/categories", { cache: "no-store" });
@@ -1885,9 +1900,9 @@ export default function AdminDashboard() {
 
       {/* MODAL 1: EDIT PROFESSIONAL PROFILE */}
       {selectedProfessional && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs p-2.5 sm:p-4 flex min-h-full items-start sm:items-center justify-center motion-enter">
-          <div className="relative w-full max-w-lg sm:max-w-2xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 my-auto">
-            <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs motion-enter">
+          <div className="relative w-full max-w-lg sm:max-w-2xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 flex flex-col max-h-[88dvh] overflow-hidden">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-3">
                 <ProfilePhoto name={selectedProfessional.user.name} photoUrl={selectedProfessional.photoUrl} size="md" />
                 <div>
@@ -1903,114 +1918,116 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
-              <div>
-                <p className="text-[10px] uppercase font-bold text-slate-500">Total Jobs</p>
-                <p className="font-bold text-base text-slate-900">{selectedProfessional.stats.totalBookings}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-bold text-slate-500">Completed</p>
-                <p className="font-bold text-base text-emerald-700">{selectedProfessional.stats.completedBookings}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-bold text-slate-500">Reviews</p>
-                <p className="font-bold text-base text-slate-900">{selectedProfessional.stats.reviewCount}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-bold text-slate-500">Avg Rating</p>
-                <p className="font-bold text-base text-amber-700">★ {selectedProfessional.stats.avgRating?.toFixed(1) || "N/A"}</p>
-              </div>
-            </div>
-
-            {/* Editable Form */}
-            <div className="space-y-3 sm:space-y-4 text-xs">
-              <div className="flex flex-col sm:flex-row gap-2">
-                <button
-                  type="button"
-                  onClick={() => toggleVerify(selectedProfessional.id, selectedProfessional.isVerified)}
-                  className={`flex-1 px-4 py-2.5 rounded-xl font-bold cursor-pointer transition-all text-center ${
-                    selectedProfessional.isVerified
-                      ? "bg-emerald-600 text-white"
-                      : "bg-amber-100 text-amber-950 border border-amber-300"
-                  }`}
-                >
-                  {selectedProfessional.isVerified ? "✓ Verified on Website" : "⚠️ Review (Click to Verify)"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => toggleAvailability(selectedProfessional.id, selectedProfessional.isAvailable)}
-                  className={`flex-1 px-4 py-2.5 rounded-xl font-bold cursor-pointer transition-all text-center ${
-                    selectedProfessional.isAvailable
-                      ? "bg-emerald-50 text-emerald-900 border border-emerald-300"
-                      : "bg-slate-200 text-slate-700"
-                  }`}
-                >
-                  {selectedProfessional.isAvailable ? "● Available for Jobs" : "Unavailable"}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="overflow-y-auto space-y-4 py-3 pr-1 flex-1">
+              {/* Quick Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
                 <div>
-                  <label className="font-bold text-slate-800 block mb-1">Upazila / Area</label>
-                  <BangladeshUpazilaInput
-                    value={editingProArea}
-                    onChange={setEditingProArea}
-                    placeholder="Search upazila"
-                    className="w-full border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900"
-                  />
+                  <p className="text-[10px] uppercase font-bold text-slate-500">Total Jobs</p>
+                  <p className="font-bold text-base text-slate-900">{selectedProfessional.stats.totalBookings}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-slate-500">Completed</p>
+                  <p className="font-bold text-base text-emerald-700">{selectedProfessional.stats.completedBookings}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-slate-500">Reviews</p>
+                  <p className="font-bold text-base text-slate-900">{selectedProfessional.stats.reviewCount}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-slate-500">Avg Rating</p>
+                  <p className="font-bold text-base text-amber-700">★ {selectedProfessional.stats.avgRating?.toFixed(1) || "N/A"}</p>
+                </div>
+              </div>
+
+              {/* Editable Form */}
+              <div className="space-y-3 text-xs">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleVerify(selectedProfessional.id, selectedProfessional.isVerified)}
+                    className={`flex-1 px-4 py-2.5 rounded-xl font-bold cursor-pointer transition-all text-center ${
+                      selectedProfessional.isVerified
+                        ? "bg-emerald-600 text-white"
+                        : "bg-amber-100 text-amber-950 border border-amber-300"
+                    }`}
+                  >
+                    {selectedProfessional.isVerified ? "✓ Verified on Website" : "⚠️ Review (Click to Verify)"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleAvailability(selectedProfessional.id, selectedProfessional.isAvailable)}
+                    className={`flex-1 px-4 py-2.5 rounded-xl font-bold cursor-pointer transition-all text-center ${
+                      selectedProfessional.isAvailable
+                        ? "bg-emerald-50 text-emerald-900 border border-emerald-300"
+                        : "bg-slate-200 text-slate-700"
+                    }`}
+                  >
+                    {selectedProfessional.isAvailable ? "● Available for Jobs" : "Unavailable"}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-800 block mb-1">Upazila / Area</label>
+                    <BangladeshUpazilaInput
+                      value={editingProArea}
+                      onChange={setEditingProArea}
+                      placeholder="Search upazila"
+                      className="w-full border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-800 block mb-1">City / District</label>
+                    <input
+                      value={editingProCity}
+                      onChange={(e) => setEditingProCity(e.target.value)}
+                      className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-800 block mb-1">Experience (Years)</label>
+                    <input
+                      type="number"
+                      value={editingProExp}
+                      onChange={(e) => setEditingProExp(Number(e.target.value))}
+                      className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-800 block mb-1">Visiting Rate (BDT)</label>
+                    <input
+                      type="number"
+                      value={editingProRate}
+                      onChange={(e) => setEditingProRate(e.target.value === "" ? "" : Number(e.target.value))}
+                      className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-800 block mb-1">City / District</label>
-                  <input
-                    value={editingProCity}
-                    onChange={(e) => setEditingProCity(e.target.value)}
+                  <label className="font-bold text-slate-800 block mb-1">Bio / Profile Description</label>
+                  <textarea
+                    rows={3}
+                    value={editingProBio}
+                    onChange={(e) => setEditingProBio(e.target.value)}
                     className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <label className="font-bold text-slate-800 block mb-1">Experience (Years)</label>
-                  <input
-                    type="number"
-                    value={editingProExp}
-                    onChange={(e) => setEditingProExp(Number(e.target.value))}
-                    className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-800 block mb-1">Visiting Rate (BDT)</label>
-                  <input
-                    type="number"
-                    value={editingProRate}
-                    onChange={(e) => setEditingProRate(e.target.value === "" ? "" : Number(e.target.value))}
-                    className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-800 block mb-1">Bio / Profile Description</label>
-                <textarea
-                  rows={3}
-                  value={editingProBio}
-                  onChange={(e) => setEditingProBio(e.target.value)}
-                  className="w-full border border-slate-300 bg-white rounded-xl p-2.5 text-xs text-slate-900"
-                />
               </div>
             </div>
 
             {/* Action Bar */}
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-4 border-t border-slate-100">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-slate-100 shrink-0">
               <button
                 type="button"
                 onClick={() => deleteProfessionalListing(selectedProfessional.id)}
-                className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer text-center py-2"
+                className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer text-center py-1.5"
               >
                 🗑️ Delete Professional Listing
               </button>
@@ -2019,7 +2036,7 @@ export default function AdminDashboard() {
                 <button
                   type="button"
                   onClick={() => setSelectedProfessional(null)}
-                  className="flex-1 sm:flex-initial px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer text-center"
+                  className="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer text-center"
                 >
                   Cancel
                 </button>
@@ -2027,7 +2044,7 @@ export default function AdminDashboard() {
                   type="button"
                   disabled={savingPro}
                   onClick={saveProfessionalEdits}
-                  className="flex-1 sm:flex-initial bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 text-xs font-bold rounded-xl shadow-xs cursor-pointer text-center"
+                  className="flex-1 sm:flex-initial bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 text-xs font-bold rounded-xl shadow-xs cursor-pointer text-center"
                 >
                   {savingPro ? "Saving..." : "💾 Save Changes"}
                 </button>
@@ -2039,9 +2056,9 @@ export default function AdminDashboard() {
 
       {/* MODAL 2: EDIT USER PROFILE */}
       {selectedUser && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs p-2.5 sm:p-4 flex min-h-full items-start sm:items-center justify-center motion-enter">
-          <div className="relative w-full max-w-md sm:max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 max-h-[92vh] overflow-y-auto my-auto">
-            <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs motion-enter">
+          <div className="relative w-full max-w-md sm:max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 flex flex-col max-h-[88dvh] overflow-hidden">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-3">
                 <ProfilePhoto name={selectedUser.name} photoUrl={selectedUser.photoUrl} size="md" />
                 <div>
@@ -2057,8 +2074,7 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* Editable Form */}
-            <div className="space-y-3 sm:space-y-4 text-xs">
+            <div className="overflow-y-auto space-y-3 py-3 pr-1 flex-1 text-xs">
               <div>
                 <label className="font-bold text-slate-800 block mb-1">Full Name</label>
                 <input
@@ -2098,11 +2114,11 @@ export default function AdminDashboard() {
             </div>
 
             {/* Action Bar */}
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-4 border-t border-slate-100">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-slate-100 shrink-0">
               <button
                 type="button"
                 onClick={() => deleteUser(selectedUser.id)}
-                className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer text-center py-2"
+                className="text-xs font-bold text-red-600 hover:text-red-800 cursor-pointer text-center py-1.5"
               >
                 🗑️ Delete User
               </button>
@@ -2111,7 +2127,7 @@ export default function AdminDashboard() {
                 <button
                   type="button"
                   onClick={() => setSelectedUser(null)}
-                  className="flex-1 sm:flex-initial px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer text-center"
+                  className="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer text-center"
                 >
                   Cancel
                 </button>
@@ -2119,7 +2135,7 @@ export default function AdminDashboard() {
                   type="button"
                   disabled={savingUser}
                   onClick={saveUserEdits}
-                  className="flex-1 sm:flex-initial bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 text-xs font-bold rounded-xl shadow-xs cursor-pointer text-center"
+                  className="flex-1 sm:flex-initial bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 text-xs font-bold rounded-xl shadow-xs cursor-pointer text-center"
                 >
                   {savingUser ? "Saving..." : "💾 Save Changes"}
                 </button>
@@ -2129,14 +2145,14 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL 3: ADD NEW SERVICE CATEGORY */}
+      {/* MODAL 3: ADD NEW SERVICE CATEGORY (Clean Mobile-Pinned Modal) */}
       {showAddCategoryModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs p-2.5 sm:p-4 flex min-h-full items-start sm:items-center justify-center motion-enter">
-          <div className="relative w-full max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 space-y-3.5 my-auto max-h-[92vh] flex flex-col justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs motion-enter">
+          <div className="relative w-full max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 flex flex-col max-h-[88dvh] overflow-hidden">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2.5">
-                <span className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl font-bold">
+                <span className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl font-bold shrink-0">
                   {getCategoryEmoji(newCatIcon)}
                 </span>
                 <div>
@@ -2159,122 +2175,124 @@ export default function AdminDashboard() {
             </div>
 
             {createCatError && (
-              <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-center gap-2 shrink-0">
+              <div className="p-2.5 my-2 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-center gap-2 shrink-0">
                 <span>⚠️</span>
                 <span>{createCatError}</span>
               </div>
             )}
 
-            <form onSubmit={handleCreateCategory} className="space-y-3 text-xs overflow-y-auto pr-0.5">
-              {/* English & Bangla Names in 2 Columns */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="font-bold text-slate-800 block mb-1">
-                    Name (English) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newCatNameEn}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setNewCatNameEn(val);
-                      setNewCatSlug(
-                        val
-                          .toLowerCase()
-                          .trim()
-                          .replace(/[^a-z0-9]+/g, "-")
-                          .replace(/^-+|-+$/g, "")
-                      );
-                    }}
-                    placeholder="e.g. Water Purifier"
-                    className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-800 block mb-1">
-                    Name (Bangla) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newCatNameBn}
-                    onChange={(e) => setNewCatNameBn(e.target.value)}
-                    placeholder="e.g. ওয়াটার ফিল্টার"
-                    className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* URL Slug */}
-              <div>
-                <label className="font-bold text-slate-800 block mb-1">
-                  URL Slug <span className="text-slate-400 text-[10px]">(Auto-generated or custom)</span>
-                </label>
-                <input
-                  type="text"
-                  value={newCatSlug}
-                  onChange={(e) => setNewCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-"))}
-                  placeholder="water-purifier"
-                  className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
-                />
-              </div>
-
-              {/* VISUAL ICON THEME CHOOSER */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-bold text-slate-800 text-xs">
-                    Choose Icon Theme <span className="text-purple-600 font-normal text-[11px]">({ICON_THEMES.length} icons)</span>
-                  </label>
-                  <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-purple-200">
-                    <span className="text-sm">{getCategoryEmoji(newCatIcon)}</span>
-                    <span>{newCatIcon || "wrench"}</span>
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-7 sm:grid-cols-9 md:grid-cols-11 gap-1.5 max-h-32 sm:max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl no-scrollbar">
-                  {ICON_THEMES.map((theme) => {
-                    const isSelected = (newCatIcon || "wrench") === theme.id;
-                    return (
-                      <button
-                        key={theme.id}
-                        type="button"
-                        title={theme.label}
-                        onClick={() => setNewCatIcon(theme.id)}
-                        className={`h-9 w-full flex items-center justify-center rounded-lg text-lg transition-all cursor-pointer ${
-                          isSelected
-                            ? "bg-purple-600 text-white shadow-xs scale-105 ring-2 ring-purple-600 ring-offset-1 z-10"
-                            : "bg-white text-slate-800 border border-slate-200/90 hover:bg-purple-100 hover:border-purple-300 hover:scale-105"
-                        }`}
-                      >
-                        <span>{theme.emoji}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Real-time Category Preview Card */}
-              {newCatNameEn && (
-                <div className="p-2.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border border-purple-200 rounded-xl flex items-center justify-between shadow-2xs">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-purple-200 text-purple-900 flex items-center justify-center font-bold text-lg shrink-0 shadow-2xs">
-                      {getCategoryEmoji(newCatIcon)}
-                    </div>
-                    <div className="truncate">
-                      <p className="font-extrabold text-xs text-purple-950 truncate">{newCatNameEn}</p>
-                      <p className="text-[10px] text-purple-700 font-semibold truncate">{newCatNameBn || "বাংলা নাম..."}</p>
-                    </div>
+            <form onSubmit={handleCreateCategory} className="flex flex-col min-h-0 flex-1 overflow-hidden">
+              <div className="overflow-y-auto space-y-3 py-2 pr-1 flex-1 text-xs">
+                {/* English & Bangla Names in 2 Columns */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="font-bold text-slate-800 block mb-1">
+                      Name (English) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newCatNameEn}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNewCatNameEn(val);
+                        setNewCatSlug(
+                          val
+                            .toLowerCase()
+                            .trim()
+                            .replace(/[^a-z0-9]+/g, "-")
+                            .replace(/^-+|-+$/g, "")
+                        );
+                      }}
+                      placeholder="e.g. Water Purifier"
+                      className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                    />
                   </div>
-                  <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded-md text-purple-900 border border-purple-200 font-bold shrink-0">
-                    /{newCatSlug || "slug"}
-                  </span>
+
+                  <div>
+                    <label className="font-bold text-slate-800 block mb-1">
+                      Name (Bangla) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newCatNameBn}
+                      onChange={(e) => setNewCatNameBn(e.target.value)}
+                      placeholder="e.g. ওয়াটার ফিল্টার"
+                      className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                    />
+                  </div>
                 </div>
-              )}
+
+                {/* URL Slug */}
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">
+                    URL Slug <span className="text-slate-400 text-[10px]">(Auto-generated or custom)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newCatSlug}
+                    onChange={(e) => setNewCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-"))}
+                    placeholder="water-purifier"
+                    className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
+                  />
+                </div>
+
+                {/* VISUAL ICON THEME CHOOSER */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-slate-800 text-xs">
+                      Choose Icon Theme <span className="text-purple-600 font-normal text-[11px]">({ICON_THEMES.length} icons)</span>
+                    </label>
+                    <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-purple-200">
+                      <span className="text-sm">{getCategoryEmoji(newCatIcon)}</span>
+                      <span>{newCatIcon || "wrench"}</span>
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-7 sm:grid-cols-9 md:grid-cols-11 gap-1.5 max-h-32 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl no-scrollbar">
+                    {ICON_THEMES.map((theme) => {
+                      const isSelected = (newCatIcon || "wrench") === theme.id;
+                      return (
+                        <button
+                          key={theme.id}
+                          type="button"
+                          title={theme.label}
+                          onClick={() => setNewCatIcon(theme.id)}
+                          className={`h-9 w-full flex items-center justify-center rounded-lg text-lg transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-purple-600 text-white shadow-xs scale-105 ring-2 ring-purple-600 ring-offset-1 z-10"
+                              : "bg-white text-slate-800 border border-slate-200/90 hover:bg-purple-100 hover:border-purple-300 hover:scale-105"
+                          }`}
+                        >
+                          <span>{theme.emoji}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Real-time Category Preview Card */}
+                {newCatNameEn && (
+                  <div className="p-2.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border border-purple-200 rounded-xl flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-purple-200 text-purple-900 flex items-center justify-center font-bold text-lg shrink-0 shadow-2xs">
+                        {getCategoryEmoji(newCatIcon)}
+                      </div>
+                      <div className="truncate">
+                        <p className="font-extrabold text-xs text-purple-950 truncate">{newCatNameEn}</p>
+                        <p className="text-[10px] text-purple-700 font-semibold truncate">{newCatNameBn || "বাংলা নাম..."}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded-md text-purple-900 border border-purple-200 font-bold shrink-0">
+                      /{newCatSlug || "slug"}
+                    </span>
+                  </div>
+                )}
+              </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-2.5 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-2.5 border-t border-slate-100 shrink-0">
                 <button
                   type="button"
                   onClick={() => {
@@ -2298,14 +2316,14 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL 4: EDIT SERVICE CATEGORY */}
+      {/* MODAL 4: EDIT SERVICE CATEGORY (Clean Mobile-Pinned Modal) */}
       {editingCategory && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs p-2.5 sm:p-4 flex min-h-full items-start sm:items-center justify-center motion-enter">
-          <div className="relative w-full max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 space-y-3.5 my-auto max-h-[92vh] flex flex-col justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs motion-enter">
+          <div className="relative w-full max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 flex flex-col max-h-[88dvh] overflow-hidden">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2.5">
-                <span className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl font-bold">
+                <span className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl font-bold shrink-0">
                   {getCategoryEmoji(editCatIcon)}
                 </span>
                 <div>
@@ -2328,108 +2346,110 @@ export default function AdminDashboard() {
             </div>
 
             {editCatError && (
-              <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-center gap-2 shrink-0">
+              <div className="p-2.5 my-2 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex items-center gap-2 shrink-0">
                 <span>⚠️</span>
                 <span>{editCatError}</span>
               </div>
             )}
 
-            <form onSubmit={handleSaveCategoryEdits} className="space-y-3 text-xs overflow-y-auto pr-0.5">
-              {/* English & Bangla Names in 2 Columns */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="font-bold text-slate-800 block mb-1">
-                    Name (English) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editCatNameEn}
-                    onChange={(e) => setEditCatNameEn(e.target.value)}
-                    className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-800 block mb-1">
-                    Name (Bangla) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editCatNameBn}
-                    onChange={(e) => setEditCatNameBn(e.target.value)}
-                    className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* URL Slug */}
-              <div>
-                <label className="font-bold text-slate-800 block mb-1">URL Slug</label>
-                <input
-                  type="text"
-                  required
-                  value={editCatSlug}
-                  onChange={(e) => setEditCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-"))}
-                  className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
-                />
-              </div>
-
-              {/* VISUAL ICON THEME CHOOSER */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-bold text-slate-800 text-xs">
-                    Choose Icon Theme <span className="text-purple-600 font-normal text-[11px]">({ICON_THEMES.length} icons)</span>
-                  </label>
-                  <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-purple-200">
-                    <span className="text-sm">{getCategoryEmoji(editCatIcon)}</span>
-                    <span>{editCatIcon || "wrench"}</span>
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-7 sm:grid-cols-9 md:grid-cols-11 gap-1.5 max-h-32 sm:max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl no-scrollbar">
-                  {ICON_THEMES.map((theme) => {
-                    const isSelected = (editCatIcon || "wrench") === theme.id;
-                    return (
-                      <button
-                        key={theme.id}
-                        type="button"
-                        title={theme.label}
-                        onClick={() => setEditCatIcon(theme.id)}
-                        className={`h-9 w-full flex items-center justify-center rounded-lg text-lg transition-all cursor-pointer ${
-                          isSelected
-                            ? "bg-purple-600 text-white shadow-xs scale-105 ring-2 ring-purple-600 ring-offset-1 z-10"
-                            : "bg-white text-slate-800 border border-slate-200/90 hover:bg-purple-100 hover:border-purple-300 hover:scale-105"
-                        }`}
-                      >
-                        <span>{theme.emoji}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Real-time Category Preview Card */}
-              {editCatNameEn && (
-                <div className="p-2.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border border-purple-200 rounded-xl flex items-center justify-between shadow-2xs">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-purple-200 text-purple-900 flex items-center justify-center font-bold text-lg shrink-0 shadow-2xs">
-                      {getCategoryEmoji(editCatIcon)}
-                    </div>
-                    <div className="truncate">
-                      <p className="font-extrabold text-xs text-purple-950 truncate">{editCatNameEn}</p>
-                      <p className="text-[10px] text-purple-700 font-semibold truncate">{editCatNameBn || "বাংলা নাম..."}</p>
-                    </div>
+            <form onSubmit={handleSaveCategoryEdits} className="flex flex-col min-h-0 flex-1 overflow-hidden">
+              <div className="overflow-y-auto space-y-3 py-2 pr-1 flex-1 text-xs">
+                {/* English & Bangla Names in 2 Columns */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="font-bold text-slate-800 block mb-1">
+                      Name (English) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editCatNameEn}
+                      onChange={(e) => setEditCatNameEn(e.target.value)}
+                      className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                    />
                   </div>
-                  <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded-md text-purple-900 border border-purple-200 font-bold shrink-0">
-                    /{editCatSlug || "slug"}
-                  </span>
+
+                  <div>
+                    <label className="font-bold text-slate-800 block mb-1">
+                      Name (Bangla) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editCatNameBn}
+                      onChange={(e) => setEditCatNameBn(e.target.value)}
+                      className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-purple-600 focus:outline-none"
+                    />
+                  </div>
                 </div>
-              )}
+
+                {/* URL Slug */}
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">URL Slug</label>
+                  <input
+                    type="text"
+                    required
+                    value={editCatSlug}
+                    onChange={(e) => setEditCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-"))}
+                    className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:border-purple-600 focus:outline-none"
+                  />
+                </div>
+
+                {/* VISUAL ICON THEME CHOOSER */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-slate-800 text-xs">
+                      Choose Icon Theme <span className="text-purple-600 font-normal text-[11px]">({ICON_THEMES.length} icons)</span>
+                    </label>
+                    <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-purple-200">
+                      <span className="text-sm">{getCategoryEmoji(editCatIcon)}</span>
+                      <span>{editCatIcon || "wrench"}</span>
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-7 sm:grid-cols-9 md:grid-cols-11 gap-1.5 max-h-32 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl no-scrollbar">
+                    {ICON_THEMES.map((theme) => {
+                      const isSelected = (editCatIcon || "wrench") === theme.id;
+                      return (
+                        <button
+                          key={theme.id}
+                          type="button"
+                          title={theme.label}
+                          onClick={() => setEditCatIcon(theme.id)}
+                          className={`h-9 w-full flex items-center justify-center rounded-lg text-lg transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-purple-600 text-white shadow-xs scale-105 ring-2 ring-purple-600 ring-offset-1 z-10"
+                              : "bg-white text-slate-800 border border-slate-200/90 hover:bg-purple-100 hover:border-purple-300 hover:scale-105"
+                          }`}
+                        >
+                          <span>{theme.emoji}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Real-time Category Preview Card */}
+                {editCatNameEn && (
+                  <div className="p-2.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border border-purple-200 rounded-xl flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-purple-200 text-purple-900 flex items-center justify-center font-bold text-lg shrink-0 shadow-2xs">
+                        {getCategoryEmoji(editCatIcon)}
+                      </div>
+                      <div className="truncate">
+                        <p className="font-extrabold text-xs text-purple-950 truncate">{editCatNameEn}</p>
+                        <p className="text-[10px] text-purple-700 font-semibold truncate">{editCatNameBn || "বাংলা নাম..."}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded-md text-purple-900 border border-purple-200 font-bold shrink-0">
+                      /{editCatSlug || "slug"}
+                    </span>
+                  </div>
+                )}
+              </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-2.5 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-2.5 border-t border-slate-100 shrink-0">
                 <button
                   type="button"
                   onClick={() => {
